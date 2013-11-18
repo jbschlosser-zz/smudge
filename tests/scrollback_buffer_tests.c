@@ -33,6 +33,10 @@ START_TEST(test_scrollback_buffer_add_data)
     ck_assert(memcmp(scrollback_buffer_get_line(buf, 3)->_data, expected_line3->_data, sizeof(mud_char_t) * mud_string_length(expected_line3)) == 0);
 
     // Clean up.
+    mud_string_destroy(expected_line0);
+    mud_string_destroy(expected_line1);
+    mud_string_destroy(expected_line2);
+    mud_string_destroy(expected_line3);
     scrollback_buffer_destroy(buf);
 }
 END_TEST
