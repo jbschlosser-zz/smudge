@@ -18,6 +18,6 @@ void scrollback_buffer_destroy(scrollback_buffer *buf);
 int scrollback_buffer_max_lines(scrollback_buffer *buf);
 int scrollback_buffer_num_lines(scrollback_buffer *buf);
 void scrollback_buffer_write(scrollback_buffer *buf, mud_char_t *source, const int len);
-mud_string *scrollback_buffer_get_line(scrollback_buffer *buf, int line_num);
+mud_string *scrollback_buffer_get_line(scrollback_buffer *buf, int lines_back);
 
 #endif

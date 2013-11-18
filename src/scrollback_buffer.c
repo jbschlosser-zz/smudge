@@ -75,11 +75,12 @@ void scrollback_buffer_write(scrollback_buffer *buf, mud_char_t *source, const i
     }
 }
 
-mud_string *scrollback_buffer_get_line(scrollback_buffer *buf, int line_num)
+mud_string *scrollback_buffer_get_line(scrollback_buffer *buf, int lines_back)
 {
     if(!buf) return NULL;
-    if(line_num < 0) return NULL;
-    if(line_num >= buf->_used) return NULL;
+    if(lines_back < 0) return NULL;
+    if(lines_back >= buf->_used) return NULL;
 
-    return buf->_lines[line_num];
+    int line_index = modulo(buf->_write_offset - lines_back, buf->_size);
+    return buf->_lines[line_index];
 }
