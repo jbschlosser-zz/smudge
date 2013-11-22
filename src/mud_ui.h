@@ -4,11 +4,11 @@
 #include "history_buffer.h"
 #include "mud_char.h"
 #include "mud_window.h"
-#include "window_buffer.h"
+#include "scrollback_buffer.h"
 
 typedef struct {
     mud_window *_output_window;
-    window_buffer *_output_buffer;
+    scrollback_buffer *_output_buffer;
     int _output_scrollback;
     mud_window *_input_line;
     char *_input_buffer;

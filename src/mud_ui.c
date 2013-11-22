@@ -10,10 +10,10 @@ mud_ui *mud_ui_create(int output_buffer_size, int input_buffer_size, int history
 
     mud_ui *ui = malloc(sizeof(mud_ui));
     ui->_output_window = mud_window_create(REAL_WINDOW_OPS, 0, 0, LINES - 1, COLS);
-    ui->_output_buffer = window_buffer_create(output_buffer_size, LINES - 1, COLS);
+    ui->_output_buffer = scrollback_buffer_create(output_buffer_size);
     ui->_output_scrollback = 0;
     ui->_input_line = mud_window_create(REAL_WINDOW_OPS, LINES - 1, 0, 1, COLS);
-    ui->_input_buffer = malloc(input_buffer_size + 2); // 2 extra chars for CR/LF when sending commands.
+    ui->_input_buffer = malloc(input_buffer_size);
     ui->_input_index = 0;
     ui->_max_input_size = input_buffer_size;
     mud_window_set_colors(ui->_input_line, COLOR_PAIR(INPUT_LINE_COLOR_PAIR));
@@ -28,7 +28,7 @@ void mud_ui_destroy(mud_ui *ui)
     if(!ui) return;
 
     mud_window_destroy(ui->_output_window);
-    window_buffer_destroy(ui->_output_buffer);
+    scrollback_buffer_destroy(ui->_output_buffer);
     mud_window_destroy(ui->_input_line);
     free(ui->_input_buffer);
     history_buffer_destroy(ui->_history);
@@ -40,15 +40,67 @@ int mud_ui_get_char(mud_ui *ui)
     return mud_window_get_char(ui->_input_line);
 }
 
-static void populate_window_with_scrollback(mud_window *mwin, window_buffer *buf, int scrollback)
+static void populate_window_with_scrollback(mud_window *mwin, scrollback_buffer *buf, int scrollback)
 {
-    int lines = mud_window_get_max_lines(mwin);
-    int cols = mud_window_get_max_cols(mwin);
-    mud_char_t *temp = malloc(lines * cols * sizeof(mud_char_t));
-    int elems_read = window_buffer_read(buf, temp, lines * cols, scrollback);
-    mud_window_clear(mwin);
-    mud_window_write_text(mwin, temp, elems_read);
-    free(temp);
+    int win_size_lines = mud_window_get_max_lines(mwin);
+    int win_size_cols = mud_window_get_max_cols(mwin);
+
+    // Scrolling all the way back is a special case.
+    if(scrollback >= scrollback_buffer_num_lines(buf) - win_size_lines) {
+        // Write lines starting at the first line in the scrollback buffer,
+        // ending when the window is full.
+        mud_window_clear(mwin);
+        int i;
+        int win_lines_written = 0;
+        for(i = scrollback + win_size_lines - 1; i >= scrollback; --i) {
+            mud_string *line = scrollback_buffer_get_line(buf, i);
+            if(!line) continue;
+
+            // Write text from the line in increments of the number of columns
+            // available in the window.
+            int j;
+            for(j = 0; j < mud_string_length(line); j += win_size_cols) {
+                int line_left = (mud_string_length(line) - j);
+                int amount_to_write = (win_size_cols < line_left ? win_size_cols : line_left);
+                mud_window_write_text(mwin, line->_data + j, amount_to_write);
+                ++win_lines_written;
+                if(win_lines_written == win_size_lines) break;
+            }
+
+            if(win_lines_written == win_size_lines) break;
+        }
+    } else {
+        // Figure out which lines to write by counting window lines
+        // backwards from the scrollback position.
+        int win_lines_found = 0;
+        int line_start_index = 0;
+        int i;
+        for(i = scrollback; i < scrollback + win_size_lines; ++i) {
+            mud_string *line = scrollback_buffer_get_line(buf, i);
+            if(!line) break;
+
+            win_lines_found += (mud_string_length(line) / (win_size_cols + 1)) + 1;
+            if(win_lines_found >= win_size_lines) {
+                while(win_lines_found > win_size_lines) {
+                    line_start_index += win_size_cols;
+                    --win_lines_found;
+                }
+                break;
+            }
+        }
+
+        // Write the lines.
+        mud_window_clear(mwin);
+        int j;
+        for(j = i; j >= scrollback; --j) {
+            mud_string *line = scrollback_buffer_get_line(buf, j);
+            if(!line) continue;
+
+            mud_window_write_text(mwin, line->_data + line_start_index, mud_string_length(line) - line_start_index);
+
+            line_start_index = 0;
+        }
+    }
 }
 
 void mud_ui_resize(mud_ui *ui, int newlines, int newcols)
@@ -59,7 +111,6 @@ void mud_ui_resize(mud_ui *ui, int newlines, int newcols)
 
     // Resize the main window.
     mud_window_resize(ui->_output_window, newlines - 1, newcols);
-    window_buffer_refit(ui->_output_buffer, newlines - 1, newcols);
     populate_window_with_scrollback(ui->_output_window, ui->_output_buffer, ui->_output_scrollback);
 
     // Resize the input line.
@@ -76,7 +127,7 @@ void mud_ui_write_formatted_output(mud_ui *ui, mud_char_t *output, int len)
     if(len < 0) return;
 
     // Write to the output buffer.
-    window_buffer_write(ui->_output_buffer, output, len);
+    scrollback_buffer_write(ui->_output_buffer, output, len);
 
     // Refresh the output window with the new data.
     populate_window_with_scrollback(ui->_output_window, ui->_output_buffer, ui->_output_scrollback);
@@ -168,7 +219,7 @@ void mud_ui_page_up(mud_ui *ui)
     // of lines.
     int lines = mud_window_get_max_lines(ui->_output_window);
     ui->_output_scrollback += ((lines / 2) + 1);
-    int scroll_lines_avail = (window_buffer_num_lines(ui->_output_buffer) - lines);
+    int scroll_lines_avail = (scrollback_buffer_num_lines(ui->_output_buffer) - lines);
     if(scroll_lines_avail < 0)
         scroll_lines_avail = 0;
     if(ui->_output_scrollback > scroll_lines_avail)

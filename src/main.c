@@ -130,7 +130,7 @@ void main_with_guile(void *data, int argc, char **argv)
 
     // Create the UI.
     mud_ui *ui = mud_ui_create(
-        10000000, // Output buffer size.
+        1000, // Output buffer size.
         1000, // Input buffer size.
         100); // History size.
 
