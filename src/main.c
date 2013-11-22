@@ -160,7 +160,16 @@ void main_with_guile(void *data, int argc, char **argv)
             break;
         }
         if(received > 0) {
+            // Write the received data, keeping the scrollback locked, if necessary.
+            // TODO: Fix this so that it works when the scrollback buffer is full.
+            // Currently, in this case, no adjustment will be made to lock scrollback
+            // in the right place. Maybe write formatted output could return the number
+            // of lines written?
+            int lines_before = mud_ui_scrollback_avail(ui);
             mud_ui_write_formatted_output(ui, received_data, received);
+            int lines_after = mud_ui_scrollback_avail(ui);
+            if(mud_ui_get_scrollback(ui) > 0)
+                mud_ui_adjust_scrollback(ui, lines_after - lines_before);
         }
 
         // Attempt to get a char from the user.
@@ -172,7 +181,13 @@ void main_with_guile(void *data, int argc, char **argv)
 
         // Handle the keypress.
         if(input_keycode == 0xA) {
+            int lines_before = mud_ui_scrollback_avail(ui);
             char *input = mud_ui_submit_input(ui);
+            int lines_after = mud_ui_scrollback_avail(ui);
+
+            // Keep scrollback locked for this line, if necessary.
+            if(mud_ui_get_scrollback(ui) > 0)
+                mud_ui_adjust_scrollback(ui, lines_after - lines_before);
 
             // Run the hook.
             SCM symbol = scm_c_lookup("send-command-hook");

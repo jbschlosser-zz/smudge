@@ -111,6 +111,8 @@ void mud_ui_resize(mud_ui *ui, int newlines, int newcols)
 
     // Resize the main window.
     mud_window_resize(ui->_output_window, newlines - 1, newcols);
+    if((scrollback_buffer_num_lines(ui->_output_buffer) - ui->_output_scrollback + 1) < newlines)
+        ui->_output_scrollback = scrollback_buffer_num_lines(ui->_output_buffer) - newlines + 1;
     populate_window_with_scrollback(ui->_output_window, ui->_output_buffer, ui->_output_scrollback);
 
     // Resize the input line.
@@ -212,18 +214,26 @@ void mud_ui_history_forward_end(mud_ui *ui)
     mud_window_clear(ui->_input_line);
 }
 
-void mud_ui_page_up(mud_ui *ui)
+void mud_ui_adjust_scrollback(mud_ui *ui, int adjustment)
 {
-    // Figure out how much upward scrolling can be done.
-    // The page up here is defined as half a screen's worth
-    // of lines.
+    mud_ui_set_scrollback(ui, ui->_output_scrollback + adjustment);
+}
+
+void mud_ui_set_scrollback(mud_ui *ui, int scrollback)
+{
+    // TODO: The behavior at the back of scrollback needs to be thought out a little better.
+    // It might be cool to have a dynamic stopping point where there are just enough lines to
+    // fill the window. Currently, the max is dependent on the window size, and that doesn't
+    // seem to make a lot of sense.
     int lines = mud_window_get_max_lines(ui->_output_window);
-    ui->_output_scrollback += ((lines / 2) + 1);
     int scroll_lines_avail = (scrollback_buffer_num_lines(ui->_output_buffer) - lines);
     if(scroll_lines_avail < 0)
         scroll_lines_avail = 0;
-    if(ui->_output_scrollback > scroll_lines_avail)
-        ui->_output_scrollback = scroll_lines_avail;
+    if(scrollback > scroll_lines_avail)
+        scrollback = scroll_lines_avail;
+    if(scrollback < 0)
+        scrollback = 0;
+    ui->_output_scrollback = scrollback;
 
     // Refresh the output window with the new scroll settings.
     populate_window_with_scrollback(ui->_output_window, ui->_output_buffer, ui->_output_scrollback);
@@ -232,21 +242,32 @@ void mud_ui_page_up(mud_ui *ui)
     mud_window_refresh(ui->_input_line);
 }
 
+int mud_ui_get_scrollback(mud_ui *ui)
+{
+    return ui->_output_scrollback;
+}
+
+int mud_ui_scrollback_avail(mud_ui *ui)
+{
+    return scrollback_buffer_num_lines(ui->_output_buffer);
+}
+
+void mud_ui_page_up(mud_ui *ui)
+{
+    // Figure out how much upward scrolling can be done.
+    // The page up here is defined as half a screen's worth
+    // of lines.
+    int lines = mud_window_get_max_lines(ui->_output_window);
+    mud_ui_adjust_scrollback(ui, (lines / 2) + 1);
+}
+
 void mud_ui_page_down(mud_ui *ui)
 {
     // Figure out how much downward scrolling can be done.
     // The page down here is defined as half a screen's worth
     // of lines.
     int lines = mud_window_get_max_lines(ui->_output_window);
-    ui->_output_scrollback -= ((lines / 2) + 1);
-    if(ui->_output_scrollback < 0)
-        ui->_output_scrollback = 0;
-
-    // Refresh the output window with the new scroll settings.
-    populate_window_with_scrollback(ui->_output_window, ui->_output_buffer, ui->_output_scrollback);
-
-    // Move the focus back to the input line.
-    mud_window_refresh(ui->_input_line);
+    mud_ui_adjust_scrollback(ui, -((lines / 2) + 1));
 }
 
 void mud_ui_input_add_char(mud_ui *ui, char ch)
