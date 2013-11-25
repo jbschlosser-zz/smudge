@@ -58,7 +58,7 @@ static mud_char_t *convert_str(const char *str, int len)
     return converted;
 }
 
-void mud_string_append(mud_string *str, mud_char_t *append_str, int len)
+void mud_string_append(mud_string *str, const mud_char_t *append_str, int len)
 {
     if(!str) return;
     if(!append_str) return;
@@ -105,6 +105,13 @@ void mud_string_assign(mud_string *str, mud_string *other_str)
 void mud_string_clear(mud_string *str)
 {
     str->_length = 0;
+}
+
+void mud_string_delete_char(mud_string *str)
+{
+    --str->_length;
+    if(str->_length < 0)
+        str->_length = 0;
 }
 
 char *mud_string_to_c_str(mud_string *str)

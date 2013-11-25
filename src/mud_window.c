@@ -42,17 +42,10 @@ void mud_window_write_text(mud_window *mwin, mud_char_t *text, int len)
     mud_char_t char_to_add;
 
     for(i = 0; i < len; ++i) {
-        // Skip null characters.
-        if(text[i] == '\0') {
-            continue;
-        }
-
         // Add the character to the window to be displayed.
         char_to_add = text[i];
         mwin->_wops.waddch(mwin->_win, char_to_add);
     }
-
-    mud_window_refresh(mwin);
 }
 
 void mud_window_clear(mud_window *mwin)
