@@ -94,11 +94,18 @@ void mud_string_assign(mud_string *str, mud_string *other_str)
     if(!str) return;
     if(!other_str) return;
 
-    free(str->_data);
-    str->_data = malloc(other_str->_max_size * sizeof(mud_char_t));
+    // Check if the string will fit in the currently allocated memory.
+    if(mud_string_length(other_str) > mud_string_length(str)) {
+        // Allocate the same amount of space as the other string has.
+        // TODO: Allocate in blocks.
+        free(str->_data);
+        str->_data = malloc(other_str->_max_size * sizeof(mud_char_t));
+        str->_block_size = other_str->_block_size;
+        str->_max_size = other_str->_max_size;
+    }
+
+    // Copy over the data from the other string.
     memcpy(str->_data, other_str->_data, other_str->_length * sizeof(mud_char_t));
-    str->_block_size = other_str->_block_size;
-    str->_max_size = other_str->_max_size;
     str->_length = other_str->_length;
 }
 
@@ -125,4 +132,9 @@ char *mud_string_to_c_str(mud_string *str)
     c_str[str->_length] = '\0';
 
     return c_str;
+}
+
+mud_char_t *mud_string_get_data(mud_string *str)
+{
+    return str->_data;
 }

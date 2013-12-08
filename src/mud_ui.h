@@ -16,11 +16,9 @@ void mud_ui_destroy(mud_ui *ui);
 // Member functions.
 int mud_ui_get_char(mud_ui *ui);
 void mud_ui_resize(mud_ui *ui, int newlines, int newcols);
-void mud_ui_populate_output_window(mud_ui *ui, line_buffer *output_data, int scrollback_index);
-void mud_ui_populate_input_line_window(mud_ui *ui, mud_string *input_data);
-void mud_ui_refresh(mud_ui *ui);
-void mud_ui_update(mud_ui *ui, line_buffer *output_data, int scrollback_index, mud_string *input_data);
-int mud_ui_get_output_window_max_lines(mud_ui *ui);
-int mud_ui_get_output_window_max_cols(mud_ui *ui);
+void mud_ui_refresh_output_window(mud_ui *ui, line_buffer *output_data, int scrollback_index);
+void mud_ui_refresh_input_line_window(mud_ui *ui, mud_string *input_data);
+//int mud_ui_get_output_window_max_lines(mud_ui *ui);
+//int mud_ui_get_output_window_max_cols(mud_ui *ui);
 
 #endif

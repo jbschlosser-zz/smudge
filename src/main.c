@@ -5,7 +5,6 @@
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
-#include "mud_connection.h"
 #include "mud_session.h"
 #include "mud_ui.h"
 
@@ -118,8 +117,9 @@ void main_with_guile(void *data, int argc, char **argv)
     // SET UP THE SESSION.
     main_session = mud_session_create(
         mud_connection_create(REAL_SOCKET_OPS),
-        line_buffer_create(10000), // Scrollback data.
-        line_buffer_create(100)); // History data.
+        scrollback_create(line_buffer_create(10000)),
+        history_create(line_buffer_create(100)),
+        input_line_create());
 
     // CONNECT TO THE MUD SERVER.
     const char *host = argv[1];
@@ -139,8 +139,9 @@ void main_with_guile(void *data, int argc, char **argv)
 
     // MAIN LOOP.
     int input_keycode = 0x0;
-    mud_char_t received_data[8192];
-    while(input_keycode != 65) {
+    mud_char_t received_data[24576];
+    mud_char_t NEWLINE = '\n';
+    while(1) {
         // Handle a resize if necessary.
         if(RESIZE_OCCURRED) {
             // Restart ncurses.
@@ -148,26 +149,19 @@ void main_with_guile(void *data, int argc, char **argv)
             refresh();
             clear();
 
-            // Resize the UI.
+            // Resize things.
             mud_ui_resize(ui, LINES, COLS);
 
-            // Adjust the scrollback to account for the new window size. This
-            // is necessary when the window is expanded to avoid unnecessary
-            // blank space when scrolled all the way back.
-            if((line_buffer_num_lines(main_session->scrollback_data) - mud_session_get_scrollback_index(main_session) + 1) < mud_ui_get_output_window_max_lines(ui))
-                mud_session_set_scrollback_index(
-                    main_session,
-                    line_buffer_num_lines(main_session->scrollback_data) - mud_ui_get_output_window_max_lines(ui) + 1,
-                    mud_ui_get_output_window_max_lines(ui));
-
-            // Update the UI.
-            mud_ui_update(ui, main_session->scrollback_data, mud_session_get_scrollback_index(main_session), main_session->input_data);
+            // Refresh the UI.
+            // TODO: Change this to use the public interface.
+            main_session->output_data->_dirty = true;
+            main_session->input_data->_dirty = true;
 
             // We're done here.
             RESIZE_OCCURRED = 0;
         }
 
-        // Check for incoming data from the server.
+        // GET DATA FROM THE SERVER.
         int received = mud_connection_receive(main_session->connection, received_data, 24576);
         bool connected = mud_connection_connected(main_session->connection);
         if(received < 0 || !connected) {
@@ -175,22 +169,22 @@ void main_with_guile(void *data, int argc, char **argv)
             break;
         }
         if(received > 0) {
-            // Write the received data, keeping the scrollback locked, if necessary.
-            // TODO: Fix this so that it works when the scrollback buffer is full.
-            // Currently, in this case, no adjustment will be made to lock scrollback
-            // in the right place. Maybe write could return the number
-            // of lines written?
-            int lines_before = line_buffer_num_lines(main_session->scrollback_data);
-            line_buffer_write(main_session->scrollback_data, received_data, received);
-            int lines_after = line_buffer_num_lines(main_session->scrollback_data);
-            if(mud_session_get_scrollback_index(main_session) > 0)
-                mud_session_adjust_scrollback_index(main_session, lines_after - lines_before, mud_ui_get_output_window_max_lines(ui));
-
-            // UPDATE THE UI.
-            mud_ui_update(ui, main_session->scrollback_data, mud_session_get_scrollback_index(main_session), main_session->input_data);
+            // Add the data to scrollback.
+            scrollback_write(main_session->output_data, received_data, received);
         }
 
-        // Attempt to get a char from the user.
+        // REFRESH THE UI.
+        if(scrollback_is_dirty(main_session->output_data)) {
+            // TODO: Fix this to use the public interface and remove coupling.
+            mud_ui_refresh_output_window(ui, main_session->output_data->_data, scrollback_get_scroll(main_session->output_data));
+            scrollback_clear_dirty(main_session->output_data);
+        }
+        if(input_line_is_dirty(main_session->input_data)) {
+            mud_ui_refresh_input_line_window(ui, input_line_get_contents(main_session->input_data));
+            input_line_clear_dirty(main_session->input_data);
+        }
+
+        // GET INPUT FROM THE USER.
         input_keycode = mud_ui_get_char(ui);
         switch(input_keycode) {
             case ERR:
@@ -198,74 +192,78 @@ void main_with_guile(void *data, int argc, char **argv)
                 continue;
             case 0xA:
             {
-                int lines_before = line_buffer_num_lines(main_session->scrollback_data);
-                char *input = mud_string_to_c_str(main_session->input_data);
-                line_buffer_write(main_session->history_data, main_session->input_data->_data, mud_string_length(main_session->input_data));
-                mud_char_t newline = '\n';
-                line_buffer_write(main_session->history_data, &newline, 1);
-                mud_string_clear(main_session->input_data);
-                int lines_after = line_buffer_num_lines(main_session->scrollback_data);
+                // Get the current input.
+                mud_string *current_input = input_line_get_contents(main_session->input_data);
 
-                // Keep scrollback locked for this line, if necessary.
-                if(mud_session_get_scrollback_index(main_session) > 0)
-                    mud_session_adjust_scrollback_index(main_session, lines_after - lines_before, mud_ui_get_output_window_max_lines(ui));
+                // Add the input to the history.
+                history_add_entry(main_session->hist, current_input);
+                history_set_pos(main_session->hist, 0);
+
+                // Write the input to the output window.
+                scrollback_write(main_session->output_data, mud_string_get_data(current_input), mud_string_length(current_input));
+                scrollback_write(main_session->output_data, &NEWLINE, 1);
 
                 // Run the hook.
+                char *input_c_str = mud_string_to_c_str(current_input);
                 SCM symbol = scm_c_lookup("send-command-hook");
                 SCM send_command_hook = scm_variable_ref(symbol);
                 if(scm_is_true(scm_hook_p(send_command_hook)) && scm_is_false(scm_hook_empty_p(send_command_hook))) {
-                    scm_c_run_hook(send_command_hook, scm_list_1(scm_from_locale_string(input)));
+                    scm_c_run_hook(send_command_hook, scm_list_1(scm_from_locale_string(input_c_str)));
                 } else {
                     // Send the command to the server.
-                    int send_result = mud_connection_send_command(main_session->connection, input, strlen(input));
+                    int send_result = mud_connection_send_command(main_session->connection, input_c_str, strlen(input_c_str));
                     if(send_result < 0) {
                         // TODO: Handle this case!
-                        free(input);
-                        break;
+                        free(input_c_str);
+                        return;
                     }
                 }
 
-                free(input);
+                // Clear the input line.
+                input_line_clear(main_session->input_data);
                 break;
             }
             case 0xD:
+                // Intentionally do nothing.
                 break;
             case KEY_RESIZE:
+                // Intentionally do nothing.
                 break;
             case 27:
-                mud_session_set_history_index(main_session, 0);
-                mud_string_assign(main_session->input_data, line_buffer_get_line_relative_to_current(main_session->history_data, mud_session_get_history_index(main_session)));
+                history_set_pos(main_session->hist, 0);
                 break;
             case KEY_UP:
-                mud_session_adjust_history_index(main_session, 1);
-                mud_string_assign(main_session->input_data, line_buffer_get_line_relative_to_current(main_session->history_data, mud_session_get_history_index(main_session)));
+                history_adjust_pos(main_session->hist, 1);
+                input_line_set_contents(main_session->input_data, history_get_current_entry(main_session->hist));
                 break;
             case KEY_DOWN:
-                mud_session_adjust_history_index(main_session, -1);
-                mud_string_assign(main_session->input_data, line_buffer_get_line_relative_to_current(main_session->history_data, mud_session_get_history_index(main_session)));
+                history_adjust_pos(main_session->hist, -1);
+                input_line_set_contents(main_session->input_data, history_get_current_entry(main_session->hist));
                 break;
             case KEY_PPAGE:
-                //mud_ui_page_up(ui);
-                mud_session_adjust_scrollback_index(main_session, 1, mud_ui_get_output_window_max_lines(ui));
+                scrollback_adjust_scroll(main_session->output_data, 1);
                 break;
             case KEY_NPAGE:
-                //mud_ui_page_down(ui);
-                mud_session_adjust_scrollback_index(main_session, -1, mud_ui_get_output_window_max_lines(ui));
+                scrollback_adjust_scroll(main_session->output_data, -1);
                 break;
             case KEY_BACKSPACE:
             case 127:
-                mud_string_delete_char(main_session->input_data);
+                input_line_delete_char(main_session->input_data);
                 break;
+            case KEY_HOME:
+            {
+                char *search_str = mud_string_to_c_str(input_line_get_contents(main_session->input_data));
+                scrollback_search_backwards(main_session->output_data, scrollback_get_scroll(main_session->output_data) + 1, search_str, &main_session->last_search_result);
+                free(search_str);
+                break;
+            }
             default:
             {
                 mud_char_t letter = input_keycode & 0xFF;
-                mud_string_append(main_session->input_data, &letter, 1);
+                input_line_add_char(main_session->input_data, letter);
                 break;
             }
         }
-
-        // UPDATE THE UI.
-        mud_ui_update(ui, main_session->scrollback_data, mud_session_get_scrollback_index(main_session), main_session->input_data);
     }
 
     end_ncurses();

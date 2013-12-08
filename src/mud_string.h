@@ -24,5 +24,6 @@ void mud_string_assign(mud_string *str, mud_string *other_str);
 void mud_string_clear(mud_string *str);
 void mud_string_delete_char(mud_string *str);
 char *mud_string_to_c_str(mud_string *str);
+mud_char_t *mud_string_get_data(mud_string *str);
 
 #endif

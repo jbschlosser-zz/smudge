@@ -34,8 +34,6 @@ void mud_ui_resize(mud_ui *ui, int newlines, int newcols)
 
     // Resize the main window.
     mud_window_resize(ui->_output_window, newlines - 1, newcols);
-    //if((scrollback_buffer_num_lines(ui->_output_buffer) - ui->_output_scrollback + 1) < newlines)
-    //    ui->_output_scrollback = scrollback_buffer_num_lines(ui->_output_buffer) - newlines + 1;
 
     // Resize the input line.
     mud_window_resize(ui->_input_line_window, 1, newcols);
@@ -106,35 +104,23 @@ static void populate_window_with_scrollback(mud_window *mwin, line_buffer *outpu
     }
 }
 
-void mud_ui_populate_output_window(mud_ui *ui, line_buffer *output_data, int scrollback_index)
+void mud_ui_refresh_output_window(mud_ui *ui, line_buffer *output_data, int scrollback_index)
 {
     populate_window_with_scrollback(ui->_output_window, output_data, scrollback_index);
-}
-
-void mud_ui_populate_input_line_window(mud_ui *ui, mud_string *input_data)
-{
-    mud_window_clear(ui->_input_line_window);
-    // TODO: Change this to use the public interface.
-    mud_window_write_text(ui->_input_line_window, input_data->_data, mud_string_length(input_data));
-}
-
-void mud_ui_refresh(mud_ui *ui)
-{
     mud_window_refresh(ui->_output_window);
+
+    // Refresh the input line to keep the focus on it.
     mud_window_refresh(ui->_input_line_window);
 }
 
-void mud_ui_update(mud_ui *ui, line_buffer *output_data, int scrollback_index, mud_string *input_data)
+void mud_ui_refresh_input_line_window(mud_ui *ui, mud_string *input_data)
 {
-    if(!ui) return;
-    if(!output_data) return;
-    if(!input_data) return;
-
-    mud_ui_populate_output_window(ui, output_data, scrollback_index);
-    mud_ui_populate_input_line_window(ui, input_data);
-    mud_ui_refresh(ui);
+    mud_window_clear(ui->_input_line_window);
+    mud_window_write_text(ui->_input_line_window, mud_string_get_data(input_data), mud_string_length(input_data));
+    mud_window_refresh(ui->_input_line_window);
 }
-int mud_ui_get_output_window_max_lines(mud_ui *ui)
+
+/*int mud_ui_get_output_window_max_lines(mud_ui *ui)
 {
     return mud_window_get_max_lines(ui->_output_window);
 }
@@ -142,4 +128,4 @@ int mud_ui_get_output_window_max_lines(mud_ui *ui)
 int mud_ui_get_output_window_max_cols(mud_ui *ui)
 {
     return mud_window_get_max_cols(ui->_output_window);
-}
+}*/
