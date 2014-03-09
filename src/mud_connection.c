@@ -14,6 +14,8 @@ mud_connection *mud_connection_create(socket_ops sock_ops)
     mud_connection *mc = malloc(sizeof(mud_connection));
     memset(mc, 0x00, sizeof(mud_connection));
     mc->_sock_ops = sock_ops;
+    mc->_telnet = telnet_create();
+    mc->_esc_sequence = esc_sequence_create();
 
     return mc;
 }
@@ -23,6 +25,8 @@ void mud_connection_destroy(mud_connection *mc)
     if(!mc) return;
 
     close(mc->_fd);
+    telnet_destroy(mc->_telnet);
+    esc_sequence_destroy(mc->_esc_sequence);
     free(mc);
 }
 
@@ -55,6 +59,57 @@ bool mud_connection_connect(mud_connection *mc, const char *hostname, const char
     mc->_sock_ops.freeaddrinfo(address_info);
     mc->_connected = true;
     return true;
+}
+
+static void handle_telnet_command(mud_connection *mc, unsigned char *cmd, int cmd_len)
+{
+    // TODO: Implement this.
+    return;
+}
+
+// Returns the mud character form of the byte if the byte should
+// be displayed. Otherwise (e.g. the byte contributes to a telnet
+// command or an escape sequence), 0 is returned.
+static mud_char_t process_byte(mud_connection *mc, unsigned char byte)
+{
+    if(!mc) return 0;
+
+    // Check if the byte contributes to a telnet command. Note that telnet
+    // commands can arrive in the middle of escape sequences and must be handled
+    // first.
+    int telnet_state_updated = telnet_update(mc->_telnet, byte);
+    if(telnet_state_updated) {
+        if(mc->_telnet->cmd_ready) {
+            // Handle the command.
+            handle_telnet_command(mc, mc->_telnet->cmd, mc->_telnet->cmd_len);
+
+            // Clear the telnet command to indicate that it has been handled.
+            telnet_clear_cmd(mc->_telnet);
+        }
+        return 0;
+    }
+
+    // Check if the byte contributes to an escape sequence.
+    int esc_sequence_state_updated = esc_sequence_update(mc->_esc_sequence, byte);
+    if(esc_sequence_state_updated) {
+        if(mc->_esc_sequence->ready) {
+            // Handle the escape sequence.
+            mud_char_t new_char_attrs = esc_sequence_get_char_attrs(mc->_esc_sequence);
+            if(new_char_attrs < INT_MAX) {
+                mc->_current_char_attrs = new_char_attrs;
+            }
+
+            // Clear the escape sequence to indicate that it has been handled.
+            esc_sequence_clear(mc->_esc_sequence);
+        }
+        return 0;
+    }
+
+    // Ignore carriage returns.
+    if(byte == 0xD)
+        return 0;
+
+    return byte;
 }
 
 int mud_connection_receive(mud_connection *mc, mud_char_t *receive_buf, int len)
@@ -90,77 +145,12 @@ int mud_connection_receive(mud_connection *mc, mud_char_t *receive_buf, int len)
         // Process the received bytes.
         int receive_index;
         for(receive_index = 0; receive_index < received; ++receive_index) {
-            // Check for an IAC.
-            unsigned char received_char = mc->_recv_buf[receive_index];
-            if(received_char == IAC) {
-                if(mc->_iac_on) {
-                    // A double IAC corresponds to the data byte 0xFF.
-                    mc->_iac_on = 0;
-                } else {
-                    mc->_iac_on = 1;
-                    continue;
-                }
-            }
-
-            // TODO: Finish option negotiation.
-            // Handle Telnet option negotiation.
-            if(mc->_iac_on) {
-                switch(received_char) {
-                    case TELNET_WILL:
-                    case TELNET_WONT:
-                    case TELNET_DO:
-                    case TELNET_DONT:
-                        mc->_telnet_will_wont_do_dont = 1;
-                        continue;
-                    default:
-                        // Ignore everything for now.
-                        mc->_iac_on = 0;
-                        continue;
-                }
-            }
-
-
-            // Check for the beginning of an escape sequence.
-            if(received_char == ESCAPE_SEQUENCE_BEGIN) {
-                mc->_escape_on = 1;
-                continue;
-            }
-
-            // Check if an escape sequence is in progress.
-            if(mc->_escape_on) {
-                if(mc->_escape_index < ESCAPE_SEQUENCE_MAX_SIZE - 1) {
-                    // Add this character to the escape sequence.
-                    mc->_escape_sequence[mc->_escape_index++] = received_char;
-
-                    // Check if the escape sequence has ended.
-                    if(received_char == ESCAPE_SEQUENCE_END) {
-                        // Get the character attributes that the escape sequence is meant to set.
-                        // The attributes will be applied to all characters until the next escape
-                        // sequence changes them.
-                        mc->_escape_sequence[mc->_escape_index] = '\0';
-                        mud_char_t char_attrs = get_char_attrs(mc->_escape_sequence);
-                        if(char_attrs < INT_MAX)
-                            mc->_current_char_attrs = char_attrs;
-
-                        // Indicate that the escape sequence has finished.
-                        mc->_escape_on = 0;
-                        mc->_escape_index = 0;
-                    }
-                } else {
-                    // Give up on this escape sequence.
-                    mc->_escape_on = 0;
-                    mc->_escape_index = 0;
-                }
-
-                continue;
-            }
-
-            // Ignore carriage returns.
-            if(received_char == 0xD)
-                continue;
+            mud_char_t result = process_byte(mc, mc->_recv_buf[receive_index]);
 
             // Add the character to the output buffer.
-            receive_buf[total_received++] = received_char | mc->_current_char_attrs;
+            if(result) {
+                receive_buf[total_received++] = mc->_recv_buf[receive_index] | mc->_current_char_attrs;
+            }
         }
     }
 

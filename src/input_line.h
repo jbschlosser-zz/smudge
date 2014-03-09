@@ -16,6 +16,7 @@ void input_line_destroy(input_line *input);
 // Member functions.
 void input_line_add_char(input_line *input, mud_char_t ch);
 void input_line_delete_char(input_line *input);
+void input_line_backspace_char(input_line *input);
 void input_line_clear(input_line *input);
 mud_string *input_line_get_contents(input_line *input);
 void input_line_set_contents(input_line *input, mud_string *str);

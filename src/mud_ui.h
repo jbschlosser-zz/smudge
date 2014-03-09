@@ -1,8 +1,9 @@
 #ifndef MUD_UI_H
 #define MUD_UI_H
 
-#include "line_buffer.h"
+#include "input_line.h"
 #include "mud_window.h"
+#include "scrollback.h"
 
 typedef struct {
     mud_window *_output_window;
@@ -16,8 +17,8 @@ void mud_ui_destroy(mud_ui *ui);
 // Member functions.
 int mud_ui_get_char(mud_ui *ui);
 void mud_ui_resize(mud_ui *ui, int newlines, int newcols);
-void mud_ui_refresh_output_window(mud_ui *ui, line_buffer *output_data, int scrollback_index);
-void mud_ui_refresh_input_line_window(mud_ui *ui, mud_string *input_data);
+void mud_ui_refresh_output_window(mud_ui *ui, scrollback *sb);
+void mud_ui_refresh_input_line_window(mud_ui *ui, input_line *input);
 //int mud_ui_get_output_window_max_lines(mud_ui *ui);
 //int mud_ui_get_output_window_max_cols(mud_ui *ui);
 

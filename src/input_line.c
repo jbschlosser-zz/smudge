@@ -23,7 +23,7 @@ void input_line_add_char(input_line *input, mud_char_t ch)
     if(!input) return;
     if(ch == '\n') return; // Don't allow newlines to be added to the input line.
 
-    mud_string_append(input->_data, &ch, 1);
+    mud_string_insert(input->_data, input_line_get_cursor(input), &ch, 1);
     ++input->_cursor_index;
     input->_dirty = true;
 }
@@ -31,11 +31,20 @@ void input_line_add_char(input_line *input, mud_char_t ch)
 void input_line_delete_char(input_line *input)
 {
     if(!input) return;
+    if(mud_string_length(input->_data) == 0) return;
 
-    mud_string_delete_char(input->_data);
+    mud_string_delete_char(input->_data, input->_cursor_index);
+    input->_dirty = true;
+}
+
+void input_line_backspace_char(input_line *input)
+{
+    if(!input) return;
+    if(mud_string_length(input->_data) == 0) return;
+    if(input->_cursor_index < 1) return;
+
+    mud_string_delete_char(input->_data, input->_cursor_index - 1);
     --input->_cursor_index;
-    if(input->_cursor_index < 0)
-        input->_cursor_index = 0;
     input->_dirty = true;
 }
 
@@ -44,6 +53,7 @@ void input_line_clear(input_line *input)
     if(!input) return;
 
     mud_string_clear(input->_data);
+    input->_cursor_index = 0;
     input->_dirty = true;
 }
 

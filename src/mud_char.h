@@ -16,6 +16,5 @@
 typedef chtype mud_char_t;
 
 void init_color_pairs();
-mud_char_t get_char_attrs(char *escape_seq);
 
 #endif

@@ -7,5 +7,6 @@ const window_ops REAL_WINDOW_OPS = {
     .wrefresh = wrefresh,
     .wclear = wclear,
     .nodelay = nodelay,
-    .keypad = keypad
+    .keypad = keypad,
+    .wmove = wmove
 };

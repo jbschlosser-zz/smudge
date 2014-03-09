@@ -20,9 +20,10 @@ void mud_string_destroy(mud_string *str);
 int mud_string_length(mud_string *str);
 void mud_string_append(mud_string *str, const mud_char_t *append_str, int len);
 void mud_string_append_c_str(mud_string *str, const char *append_str, int len);
+void mud_string_insert(mud_string *str, int index, const mud_char_t *insert_str, int len);
 void mud_string_assign(mud_string *str, mud_string *other_str);
 void mud_string_clear(mud_string *str);
-void mud_string_delete_char(mud_string *str);
+void mud_string_delete_char(mud_string *str, int index);
 char *mud_string_to_c_str(mud_string *str);
 mud_char_t *mud_string_get_data(mud_string *str);
 

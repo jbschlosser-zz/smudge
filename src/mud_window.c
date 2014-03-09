@@ -52,7 +52,8 @@ void mud_window_clear(mud_window *mwin)
 {
     if(!mwin) return;
 
-    mwin->_wops.wclear(mwin->_win);
+    //mwin->_wops.werase(mwin->_win);
+    werase(mwin->_win);
 }
 
 void mud_window_refresh(mud_window *mwin)
@@ -112,4 +113,11 @@ int mud_window_get_char(mud_window *mwin)
     if(!mwin) return ERR;
 
     return wgetch(mwin->_win);
+}
+
+void mud_window_set_cursor(mud_window *mwin, int y, int x)
+{
+    if(!mwin) return;
+
+    wmove(mwin->_win, y, x);
 }

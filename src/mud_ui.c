@@ -104,19 +104,22 @@ static void populate_window_with_scrollback(mud_window *mwin, line_buffer *outpu
     }
 }
 
-void mud_ui_refresh_output_window(mud_ui *ui, line_buffer *output_data, int scrollback_index)
+void mud_ui_refresh_output_window(mud_ui *ui, scrollback *sb)
 {
-    populate_window_with_scrollback(ui->_output_window, output_data, scrollback_index);
+    // TODO: Fix this to use the public interface.
+    populate_window_with_scrollback(ui->_output_window, sb->_data, scrollback_get_scroll(sb));
     mud_window_refresh(ui->_output_window);
 
     // Refresh the input line to keep the focus on it.
     mud_window_refresh(ui->_input_line_window);
 }
 
-void mud_ui_refresh_input_line_window(mud_ui *ui, mud_string *input_data)
+void mud_ui_refresh_input_line_window(mud_ui *ui, input_line *input)
 {
     mud_window_clear(ui->_input_line_window);
-    mud_window_write_text(ui->_input_line_window, mud_string_get_data(input_data), mud_string_length(input_data));
+    mud_string *contents = input_line_get_contents(input);
+    mud_window_write_text(ui->_input_line_window, mud_string_get_data(contents), mud_string_length(contents));
+    mud_window_set_cursor(ui->_input_line_window, 0, input_line_get_cursor(input));
     mud_window_refresh(ui->_input_line_window);
 }
 

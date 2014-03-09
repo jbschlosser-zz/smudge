@@ -89,6 +89,32 @@ void mud_string_append_c_str(mud_string *str, const char *append_str, int len)
     free(converted);
 }
 
+void mud_string_insert(mud_string *str, int index, const mud_char_t *insert_str, int len)
+{
+    if(!str) return;
+    if(index < 0 || index > mud_string_length(str)) return;
+    if(!insert_str) return;
+    if(len <= 0) return;
+
+    // Make sure there is enough space to write the data.
+    while((str->_max_size - str->_length) < len) {
+        str->_max_size = (str->_max_size + str->_block_size);
+        mud_char_t *new_data = malloc(sizeof(mud_char_t) * str->_max_size);
+        memcpy(new_data, str->_data, str->_length * sizeof(mud_char_t));
+        free(str->_data);
+        str->_data = new_data;
+    }
+
+    // Move the data that is in the way.
+    memmove(str->_data + index + len, str->_data + index, (str->_length - index) * sizeof(mud_char_t));
+
+    // Copy in the new data.
+    memcpy(str->_data + index, insert_str, len * sizeof(mud_char_t));
+
+    // Indicate that the length has changed.
+    str->_length += len;
+}
+
 void mud_string_assign(mud_string *str, mud_string *other_str)
 {
     if(!str) return;
@@ -111,14 +137,23 @@ void mud_string_assign(mud_string *str, mud_string *other_str)
 
 void mud_string_clear(mud_string *str)
 {
+    if(!str) return;
+
     str->_length = 0;
 }
 
-void mud_string_delete_char(mud_string *str)
+void mud_string_delete_char(mud_string *str, int index)
 {
+    if(!str) return;
+    if(index < 0) return;
+    if(index >= mud_string_length(str)) return;
+
+    // Move down the characters after the deleted one.
+    int i;
+    for(i = index + 1; i < mud_string_length(str); ++i) {
+        str->_data[i - 1] = str->_data[i];
+    }
     --str->_length;
-    if(str->_length < 0)
-        str->_length = 0;
 }
 
 char *mud_string_to_c_str(mud_string *str)

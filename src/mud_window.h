@@ -25,5 +25,6 @@ void mud_window_set_colors(mud_window *mwin, int color_pair);
 void mud_window_resize(mud_window *mwin, int lines, int cols);
 void mud_window_move(mud_window *mwin, int y_loc, int x_loc);
 int mud_window_get_char(mud_window *mwin);
+void mud_window_set_cursor(mud_window *mwin, int y, int x);
 
 #endif

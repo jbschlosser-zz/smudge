@@ -5,6 +5,7 @@
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
+#include "keys.h"
 #include "mud_session.h"
 #include "mud_ui.h"
 
@@ -137,10 +138,12 @@ void main_with_guile(void *data, int argc, char **argv)
     // Create the UI.
     mud_ui *ui = mud_ui_create(REAL_WINDOW_OPS, REAL_WINDOW_OPS, 0, 0, LINES, COLS);
 
+    // CREATE THE KEYBINDINGS.
+    key_binding_table *bindings = key_binding_table_create();
+
     // MAIN LOOP.
     int input_keycode = 0x0;
     mud_char_t received_data[24576];
-    mud_char_t NEWLINE = '\n';
     while(1) {
         // Handle a resize if necessary.
         if(RESIZE_OCCURRED) {
@@ -175,98 +178,32 @@ void main_with_guile(void *data, int argc, char **argv)
 
         // REFRESH THE UI.
         if(scrollback_is_dirty(main_session->output_data)) {
-            // TODO: Fix this to use the public interface and remove coupling.
-            mud_ui_refresh_output_window(ui, main_session->output_data->_data, scrollback_get_scroll(main_session->output_data));
+            mud_ui_refresh_output_window(ui, main_session->output_data);
             scrollback_clear_dirty(main_session->output_data);
+            syslog(LOG_INFO, "Scrollback has been refreshed");
         }
         if(input_line_is_dirty(main_session->input_data)) {
-            mud_ui_refresh_input_line_window(ui, input_line_get_contents(main_session->input_data));
+            mud_ui_refresh_input_line_window(ui, main_session->input_data);
             input_line_clear_dirty(main_session->input_data);
+            syslog(LOG_INFO, "Input line has been refreshed");
         }
 
         // GET INPUT FROM THE USER.
+        // Perform the function bound to the key.
         input_keycode = mud_ui_get_char(ui);
-        switch(input_keycode) {
-            case ERR:
-                usleep(10000);
-                continue;
-            case 0xA:
-            {
-                // Get the current input.
-                mud_string *current_input = input_line_get_contents(main_session->input_data);
-
-                // Add the input to the history.
-                history_add_entry(main_session->hist, current_input);
-                history_set_pos(main_session->hist, 0);
-
-                // Write the input to the output window.
-                scrollback_write(main_session->output_data, mud_string_get_data(current_input), mud_string_length(current_input));
-                scrollback_write(main_session->output_data, &NEWLINE, 1);
-
-                // Run the hook.
-                char *input_c_str = mud_string_to_c_str(current_input);
-                SCM symbol = scm_c_lookup("send-command-hook");
-                SCM send_command_hook = scm_variable_ref(symbol);
-                if(scm_is_true(scm_hook_p(send_command_hook)) && scm_is_false(scm_hook_empty_p(send_command_hook))) {
-                    scm_c_run_hook(send_command_hook, scm_list_1(scm_from_locale_string(input_c_str)));
-                } else {
-                    // Send the command to the server.
-                    int send_result = mud_connection_send_command(main_session->connection, input_c_str, strlen(input_c_str));
-                    if(send_result < 0) {
-                        // TODO: Handle this case!
-                        free(input_c_str);
-                        return;
-                    }
-                }
-
-                // Clear the input line.
-                input_line_clear(main_session->input_data);
-                break;
-            }
-            case 0xD:
-                // Intentionally do nothing.
-                break;
-            case KEY_RESIZE:
-                // Intentionally do nothing.
-                break;
-            case 27:
-                history_set_pos(main_session->hist, 0);
-                break;
-            case KEY_UP:
-                history_adjust_pos(main_session->hist, 1);
-                input_line_set_contents(main_session->input_data, history_get_current_entry(main_session->hist));
-                break;
-            case KEY_DOWN:
-                history_adjust_pos(main_session->hist, -1);
-                input_line_set_contents(main_session->input_data, history_get_current_entry(main_session->hist));
-                break;
-            case KEY_PPAGE:
-                scrollback_adjust_scroll(main_session->output_data, 1);
-                break;
-            case KEY_NPAGE:
-                scrollback_adjust_scroll(main_session->output_data, -1);
-                break;
-            case KEY_BACKSPACE:
-            case 127:
-                input_line_delete_char(main_session->input_data);
-                break;
-            case KEY_HOME:
-            {
-                char *search_str = mud_string_to_c_str(input_line_get_contents(main_session->input_data));
-                scrollback_search_backwards(main_session->output_data, scrollback_get_scroll(main_session->output_data) + 1, search_str, &main_session->last_search_result);
-                free(search_str);
-                break;
-            }
-            default:
-            {
-                mud_char_t letter = input_keycode & 0xFF;
-                input_line_add_char(main_session->input_data, letter);
-                break;
-            }
+        if(input_keycode == ERR) {
+            usleep(10000);
+        } else {
+            key_binding binding = key_binding_table_get_binding(bindings, input_keycode);
+            if(binding)
+                binding(main_session, ui, input_keycode);
+            else
+                key_binding_unset(main_session, ui, input_keycode);
         }
     }
 
     end_ncurses();
+    key_binding_table_destroy(bindings);
     mud_session_destroy(main_session);
     mud_ui_destroy(ui);
 }

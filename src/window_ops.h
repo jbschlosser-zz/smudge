@@ -12,6 +12,7 @@ typedef struct
     int (*wclear) (WINDOW *win);
     int (*nodelay) (WINDOW *win, bool);
     int (*keypad) (WINDOW *win, bool);
+    int (*wmove) (WINDOW *win, int, int);
 } window_ops;
 
 extern const window_ops REAL_WINDOW_OPS;
