@@ -5,6 +5,11 @@
 #include "input_line.h"
 #include "scrollback.h"
 
+void init_ncurses(void);
+void end_ncurses(void);
+
+// The user interface for the application. It handles displaying
+// the data, resizing, and obtaining user input.
 typedef struct {
     WINDOW *_output_window;
     WINDOW *_input_line_window;

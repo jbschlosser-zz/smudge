@@ -1,6 +1,21 @@
 #include <stdlib.h>
 #include "user_interface.h"
 
+void init_ncurses(void)
+{
+    initscr(); // Start ncurses mode.
+    cbreak(); // Pass characters directly to the ui without waiting for the return key to be pressed.
+    noecho(); // Don't echo characters as they are typed.
+    start_color(); // Start colors.
+    use_default_colors(); // Allows default colors (i.e. the usual color of the terminal foreground or background).
+    init_color_pairs(); // Set up the color pairs to be used throughout.
+}
+
+void end_ncurses(void)
+{
+    endwin(); // End ncurses mode.
+}
+
 user_interface *user_interface_create(int y_loc, int x_loc, int size_lines, int size_cols)
 {
     if(y_loc < 0 || x_loc < 0 || size_lines <= 1 || size_cols <= 0)

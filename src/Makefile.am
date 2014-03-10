@@ -1,6 +1,6 @@
 lib_LIBRARIES = libmud.a
 libmud_a_CFLAGS = $(GUILE_CFLAGS)
-libmud_a_SOURCES = mud_connection.c user_interface.c socket_ops.c color_string.c session.c line_buffer.c search.c history.c scrollback.c input_line.c keys.c telnet.c esc_sequence.c
+libmud_a_SOURCES = mud_connection.c user_interface.c socket_ops.c color_string.c session.c line_buffer.c search.c history.c scrollback.c input_line.c keys.c telnet.c esc_sequence.c guile.c
 bin_PROGRAMS = mud
 mud_CFLAGS = $(GUILE_CFLAGS) $(PCRE_CFLAGS)
 mud_SOURCES = main.c

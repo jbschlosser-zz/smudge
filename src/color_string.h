@@ -1,7 +1,11 @@
-#ifndef MUD_STRING_H
-#define MUD_STRING_H
+#ifndef COLOR_STRING_H
+#define COLOR_STRING_H
 
 #include <ncurses.h>
+
+// Typedef for a single colored character. It is currently
+// coupled to ncurses, which isn't ideal...
+typedef chtype color_char;
 
 #define BLACK_ON_DEFAULT_BG 1
 #define RED_ON_DEFAULT_BG 2
@@ -13,10 +17,10 @@
 #define WHITE_ON_DEFAULT_BG 8
 #define INPUT_LINE_COLOR_PAIR 9
 
-typedef chtype color_char;
+// Sets up the color pairs as listed above.
+void init_color_pairs(void);
 
-void init_color_pairs();
-
+// A string of colored characters.
 typedef struct {
     color_char *_data; // The character data.
     int _max_size; // The max size of character data that can fit in the string.
