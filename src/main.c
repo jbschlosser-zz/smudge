@@ -9,6 +9,8 @@
 #include "session.h"
 #include "user_interface.h"
 
+#define RECV_BUFFER_MAX_SIZE 24576
+
 static SCM write_to_stderr(SCM output)
 {
     char *str = scm_to_locale_string(output);
@@ -37,12 +39,6 @@ static SCM reload_config(void)
 
 void init_guile(void)
 {
-    // Set up debugging.
-    //SCM_DEVAL_P = 1;
-    //SCM_BACKTRACE_P = 1;
-    //SCM_RECORD_POSITIONS_P = 1;
-    //SCM_RESET_DEBUG_MODE;
-
     // Set up the hooks.
     scm_c_define_gsubr("write-to-stderr", 1, 0, 0, &write_to_stderr);
     scm_c_define("send-command-hook", scm_make_hook(scm_from_int(1)));
@@ -55,18 +51,6 @@ void init_guile(void)
 
     // Load the config file.
     reload_config();
-    /*scm_c_eval_string("(define (lazy-catch-handler key . args)\
-            (let ((stack (make-stack #t lazy-catch-handler)))\
-             (display-backtrace stack (current-output-port))\
-             (scm-error key \"?\" \"?\" args)\
-             )\
-                )\
-              (catch #t (lambda () (lazy-catch #t\
-                             (lambda () (primitive-load config-filename))\
-                                           lazy-catch-handler))\
-               (lambda (key . args) #t))");*/
-    //scm_c_eval_string("(catch #t (lambda () (primitive-load config-filename)) (lambda (key . args) #t) (lambda (key . args) (display-backtrace (make-stack #t) (current-output-port))))");
-    //scm_c_primitive_load("mud.scm");
 }
 
 void init_ncurses(void)
@@ -143,7 +127,7 @@ void main_with_guile(void *data, int argc, char **argv)
 
     // MAIN LOOP.
     int input_keycode = 0x0;
-    color_char received_data[24576];
+    color_char received_data[RECV_BUFFER_MAX_SIZE];
     while(1) {
         // Handle a resize if necessary.
         if(RESIZE_OCCURRED) {
@@ -165,7 +149,7 @@ void main_with_guile(void *data, int argc, char **argv)
         }
 
         // GET DATA FROM THE SERVER.
-        int received = mud_connection_receive(main_session->connection, received_data, 24576);
+        int received = mud_connection_receive(main_session->connection, received_data, RECV_BUFFER_MAX_SIZE);
         bool connected = mud_connection_connected(main_session->connection);
         if(received < 0 || !connected) {
             // TODO: Handle this case!
