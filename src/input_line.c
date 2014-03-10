@@ -71,12 +71,13 @@ void input_line_set_contents(input_line *input, color_string *str)
     if(!str) return;
 
     // Clear the current input.
-    color_string_clear(input->_data);
+    input_line_clear(input);
 
     // Add the new input.
     int i;
-    for(i = 0; i < color_string_length(str); ++i)
+    for(i = 0; i < color_string_length(str); ++i) {
         input_line_add_char(input, color_string_get_data(str)[i]);
+    }
     input->_dirty = true;
 }
 
