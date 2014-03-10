@@ -3,14 +3,13 @@
 
 #include <stdbool.h>
 #include "esc_sequence.h"
-#include "mud_char.h"
+#include "mud_string.h"
 #include "socket_ops.h"
 #include "telnet.h"
 
 #define RECV_BUFFER_MAX_SIZE 4096
 
-typedef struct
-{
+typedef struct {
     socket_ops _sock_ops;
     int _fd;
     bool _connected;

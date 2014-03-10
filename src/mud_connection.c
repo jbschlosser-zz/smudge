@@ -6,7 +6,6 @@
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
-#include "mud_char.h"
 #include "mud_connection.h"
 
 mud_connection *mud_connection_create(socket_ops sock_ops)

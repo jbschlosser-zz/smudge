@@ -1,14 +1,13 @@
 #ifndef ESCAPE_SEQUENCE_H
 #define ESCAPE_SEQUENCE_H
 
-#include "mud_char.h"
+#include "mud_string.h"
 
 #define ESCAPE_SEQUENCE_MAX_SIZE 15
 #define ESCAPE_SEQUENCE_BEGIN 0x1B // ESC character.
 #define ESCAPE_SEQUENCE_END 0x6D // 'm' character.
 
-typedef struct
-{
+typedef struct {
     char data[ESCAPE_SEQUENCE_MAX_SIZE + 1]; // +1 for NULL terminator.
     int len;
     int ready;

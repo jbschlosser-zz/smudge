@@ -6,7 +6,6 @@
 
 typedef void (*key_binding)(mud_session *session, mud_ui *ui, int key);
 
-//struct _table_entry;
 typedef struct _table_entry {
     int keycode;
     key_binding binding;

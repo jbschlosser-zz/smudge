@@ -1,7 +1,7 @@
 #ifndef MWINDOW_H
 #define MWINDOW_H
 
-#include "mud_char.h"
+#include "mud_string.h"
 #include "window_ops.h"
 
 typedef struct

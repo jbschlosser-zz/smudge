@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include "utilities.h"
 #include "line_buffer.h"
 
 line_buffer *line_buffer_create(int size_in_lines)
@@ -71,6 +70,14 @@ void line_buffer_write(line_buffer *buf, const mud_char_t *source, const int len
                 buf->_used = buf->_size;
         }
     }
+}
+
+// Performs n % d in the mathematical way.
+static int modulo(int n, int d)
+{
+    if(d < 0)
+        d = -d;
+    return ((n % d) + d) % d;
 }
 
 mud_string *line_buffer_get_line(line_buffer *buf, int index)
