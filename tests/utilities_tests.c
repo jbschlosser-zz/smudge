@@ -1,6 +1,6 @@
 #include "common_test.h"
 #include "utilities_tests.h"
-#include "../src/utilities.h"
+#include "../src/line_buffer.c"
 
 // modulo() tests.
 START_TEST(test_modulo_positive_numbers)
