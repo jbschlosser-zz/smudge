@@ -6,8 +6,8 @@
 #include <syslog.h>
 #include <unistd.h>
 #include "keys.h"
-#include "mud_session.h"
-#include "mud_ui.h"
+#include "session.h"
+#include "user_interface.h"
 
 static SCM write_to_stderr(SCM output)
 {
@@ -18,7 +18,7 @@ static SCM write_to_stderr(SCM output)
     return SCM_UNSPECIFIED;
 }
 
-static mud_session *main_session = NULL;
+static session *main_session = NULL;
 static SCM send_command(SCM command)
 {
     char *str = scm_to_locale_string(command);
@@ -116,7 +116,7 @@ void main_with_guile(void *data, int argc, char **argv)
     init_guile();
 
     // SET UP THE SESSION.
-    main_session = mud_session_create(
+    main_session = session_create(
         mud_connection_create(REAL_SOCKET_OPS),
         scrollback_create(line_buffer_create(10000)),
         history_create(line_buffer_create(100)),
@@ -136,14 +136,14 @@ void main_with_guile(void *data, int argc, char **argv)
     init_ncurses();
 
     // Create the UI.
-    mud_ui *ui = mud_ui_create(REAL_WINDOW_OPS, REAL_WINDOW_OPS, 0, 0, LINES, COLS);
+    user_interface *ui = user_interface_create(REAL_WINDOW_OPS, REAL_WINDOW_OPS, 0, 0, LINES, COLS);
 
     // CREATE THE KEYBINDINGS.
     key_binding_table *bindings = key_binding_table_create();
 
     // MAIN LOOP.
     int input_keycode = 0x0;
-    mud_char_t received_data[24576];
+    color_char received_data[24576];
     while(1) {
         // Handle a resize if necessary.
         if(RESIZE_OCCURRED) {
@@ -153,7 +153,7 @@ void main_with_guile(void *data, int argc, char **argv)
             clear();
 
             // Resize things.
-            mud_ui_resize(ui, LINES, COLS);
+            user_interface_resize(ui, LINES, COLS);
 
             // Refresh the UI.
             // TODO: Change this to use the public interface.
@@ -178,19 +178,19 @@ void main_with_guile(void *data, int argc, char **argv)
 
         // REFRESH THE UI.
         if(scrollback_is_dirty(main_session->output_data)) {
-            mud_ui_refresh_output_window(ui, main_session->output_data);
+            user_interface_refresh_output_window(ui, main_session->output_data);
             scrollback_clear_dirty(main_session->output_data);
             syslog(LOG_INFO, "Scrollback has been refreshed");
         }
         if(input_line_is_dirty(main_session->input_data)) {
-            mud_ui_refresh_input_line_window(ui, main_session->input_data);
+            user_interface_refresh_input_line_window(ui, main_session->input_data);
             input_line_clear_dirty(main_session->input_data);
             syslog(LOG_INFO, "Input line has been refreshed");
         }
 
         // GET INPUT FROM THE USER.
         // Perform the function bound to the key.
-        input_keycode = mud_ui_get_char(ui);
+        input_keycode = user_interface_get_char(ui);
         if(input_keycode == ERR) {
             usleep(10000);
         } else {
@@ -204,8 +204,8 @@ void main_with_guile(void *data, int argc, char **argv)
 
     end_ncurses();
     key_binding_table_destroy(bindings);
-    mud_session_destroy(main_session);
-    mud_ui_destroy(ui);
+    session_destroy(main_session);
+    user_interface_destroy(ui);
 }
 
 int main(int argc, char **argv)

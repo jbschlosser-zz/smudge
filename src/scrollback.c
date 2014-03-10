@@ -20,7 +20,7 @@ void scrollback_destroy(scrollback *sb)
     free(sb);
 }
 
-void scrollback_write(scrollback *sb, mud_char_t *data, int len)
+void scrollback_write(scrollback *sb, color_char *data, int len)
 {
     if(!sb) return;
 
@@ -77,7 +77,7 @@ void scrollback_search_backwards(scrollback *sb, int starting_line, const char* 
         search_start_line = result->line_number + 1;
 
         // Clear out any previous match.
-        mud_char_t *previous_matching_line = mud_string_get_data(
+        color_char *previous_matching_line = color_string_get_data(
             line_buffer_get_line_relative_to_current(
                 sb->_data,
                 result->line_number));
@@ -96,7 +96,7 @@ void scrollback_search_backwards(scrollback *sb, int starting_line, const char* 
     if(string_found) {
         // Move to and highlight the match.
         scrollback_set_scroll(sb, result->line_number);
-        mud_char_t *line_with_result = mud_string_get_data(line_buffer_get_line_relative_to_current(sb->_data, result->line_number));
+        color_char *line_with_result = color_string_get_data(line_buffer_get_line_relative_to_current(sb->_data, result->line_number));
         int j;
         for(j = result->begin_index; j < result->end_index; ++j)
             line_with_result[j] = line_with_result[j] | A_STANDOUT;

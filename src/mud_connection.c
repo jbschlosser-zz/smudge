@@ -69,7 +69,7 @@ static void handle_telnet_command(mud_connection *mc, unsigned char *cmd, int cm
 // Returns the mud character form of the byte if the byte should
 // be displayed. Otherwise (e.g. the byte contributes to a telnet
 // command or an escape sequence), 0 is returned.
-static mud_char_t process_byte(mud_connection *mc, unsigned char byte)
+static color_char process_byte(mud_connection *mc, unsigned char byte)
 {
     if(!mc) return 0;
 
@@ -93,7 +93,7 @@ static mud_char_t process_byte(mud_connection *mc, unsigned char byte)
     if(esc_sequence_state_updated) {
         if(mc->_esc_sequence->ready) {
             // Handle the escape sequence.
-            mud_char_t new_char_attrs = esc_sequence_get_char_attrs(mc->_esc_sequence);
+            color_char new_char_attrs = esc_sequence_get_char_attrs(mc->_esc_sequence);
             if(new_char_attrs < INT_MAX) {
                 mc->_current_char_attrs = new_char_attrs;
             }
@@ -111,7 +111,7 @@ static mud_char_t process_byte(mud_connection *mc, unsigned char byte)
     return byte;
 }
 
-int mud_connection_receive(mud_connection *mc, mud_char_t *receive_buf, int len)
+int mud_connection_receive(mud_connection *mc, color_char *receive_buf, int len)
 {
     if(!mc) return -1;
     if(!mc->_connected) return -1;
@@ -144,7 +144,7 @@ int mud_connection_receive(mud_connection *mc, mud_char_t *receive_buf, int len)
         // Process the received bytes.
         int receive_index;
         for(receive_index = 0; receive_index < received; ++receive_index) {
-            mud_char_t result = process_byte(mc, mc->_recv_buf[receive_index]);
+            color_char result = process_byte(mc, mc->_recv_buf[receive_index]);
 
             // Add the character to the output buffer.
             if(result) {

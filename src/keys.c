@@ -110,97 +110,97 @@ void key_binding_table_destroy(key_binding_table *kb_table)
     free(kb_table);
 }
 
-void key_binding_unset(mud_session *session, mud_ui *ui, int key)
+void key_binding_unset(session *session, user_interface *ui, int key)
 {
     char msg[1024];
     sprintf(msg, "No binding set for key: %d\n", key);
-    mud_string *unset_msg = mud_string_create_from_c_string(128, msg);
-    scrollback_write(session->output_data, mud_string_get_data(unset_msg), mud_string_length(unset_msg));
-    mud_string_destroy(unset_msg);
+    color_string *unset_msg = color_string_create_from_c_string(128, msg);
+    scrollback_write(session->output_data, color_string_get_data(unset_msg), color_string_length(unset_msg));
+    color_string_destroy(unset_msg);
 }
 
-void key_binding_do_nothing(mud_session *session, mud_ui *ui, int key)
+void key_binding_do_nothing(session *session, user_interface *ui, int key)
 {
     // Intentionally do nothing.
 }
 
-void key_binding_page_up(mud_session *session, mud_ui *ui, int key)
+void key_binding_page_up(session *session, user_interface *ui, int key)
 {
     scrollback_adjust_scroll(session->output_data, 1);
 }
 
-void key_binding_page_down(mud_session *session, mud_ui *ui, int key)
+void key_binding_page_down(session *session, user_interface *ui, int key)
 {
     scrollback_adjust_scroll(session->output_data, -1);
 }
 
-void key_binding_history_back(mud_session *session, mud_ui *ui, int key)
+void key_binding_history_back(session *session, user_interface *ui, int key)
 {
     history_adjust_pos(session->hist, 1);
     input_line_set_contents(session->input_data, history_get_current_entry(session->hist));
 }
 
-void key_binding_history_forward(mud_session *session, mud_ui *ui, int key)
+void key_binding_history_forward(session *session, user_interface *ui, int key)
 {
     history_adjust_pos(session->hist, -1);
     input_line_set_contents(session->input_data, history_get_current_entry(session->hist));
 }
 
-void key_binding_history_forward_end(mud_session *session, mud_ui *ui, int key)
+void key_binding_history_forward_end(session *session, user_interface *ui, int key)
 {
     history_set_pos(session->hist, 0);
     input_line_set_contents(session->input_data, history_get_current_entry(session->hist));
 }
 
-void key_binding_add_input_char(mud_session *session, mud_ui *ui, int key)
+void key_binding_add_input_char(session *session, user_interface *ui, int key)
 {
-    mud_char_t letter = key & 0xFF;
+    color_char letter = key & 0xFF;
     input_line_add_char(session->input_data, letter);
 }
 
-void key_binding_delete_input_char(mud_session *session, mud_ui *ui, int key)
+void key_binding_delete_input_char(session *session, user_interface *ui, int key)
 {
     input_line_delete_char(session->input_data);
 }
 
-void key_binding_backspace_input_char(mud_session *session, mud_ui *ui, int key)
+void key_binding_backspace_input_char(session *session, user_interface *ui, int key)
 {
     input_line_backspace_char(session->input_data);
 }
 
-void key_binding_input_cursor_left(mud_session *session, mud_ui *ui, int key)
+void key_binding_input_cursor_left(session *session, user_interface *ui, int key)
 {
     input_line_adjust_cursor(session->input_data, -1);
 }
 
-void key_binding_input_cursor_right(mud_session *session, mud_ui *ui, int key)
+void key_binding_input_cursor_right(session *session, user_interface *ui, int key)
 {
     input_line_adjust_cursor(session->input_data, 1);
 }
 
-void key_binding_search(mud_session *session, mud_ui *ui, int key)
+void key_binding_search(session *session, user_interface *ui, int key)
 {
-    char *search_str = mud_string_to_c_str(input_line_get_contents(session->input_data));
+    char *search_str = color_string_to_c_str(input_line_get_contents(session->input_data));
     scrollback_search_backwards(session->output_data, scrollback_get_scroll(session->output_data) + 1, search_str, &session->last_search_result);
     free(search_str);
 }
 
-void key_binding_submit_input(mud_session *session, mud_ui *ui, int key)
+void key_binding_submit_input(session *session, user_interface *ui, int key)
 {
     // Get the current input.
-    mud_string *current_input = input_line_get_contents(session->input_data);
+    color_string *current_input = input_line_get_contents(session->input_data);
 
     // Add the input to the history.
     history_add_entry(session->hist, current_input);
     history_set_pos(session->hist, 0);
 
     // Write the input to the output window.
-    scrollback_write(session->output_data, mud_string_get_data(current_input), mud_string_length(current_input));
-    mud_char_t NEWLINE = '\n';
+    scrollback_write(session->output_data, color_string_get_data(current_input), color_string_length(current_input));
+    color_char NEWLINE = '\n';
     scrollback_write(session->output_data, &NEWLINE, 1);
 
     // Run the hook.
-    char *input_c_str = mud_string_to_c_str(current_input);
+    char *input_c_str = color_string_to_c_str(current_input);
     SCM symbol = scm_c_lookup("send-command-hook");
     SCM send_command_hook = scm_variable_ref(symbol);
     if(scm_is_true(scm_hook_p(send_command_hook)) && scm_is_false(scm_hook_empty_p(send_command_hook))) {

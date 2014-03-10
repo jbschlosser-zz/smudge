@@ -29,10 +29,10 @@ bool search_buffer(line_buffer *buf, int starting_line, const char* str, search_
 
     int i;
     for(i = starting_line; i < line_buffer_num_lines(buf); ++i) {
-        mud_string *line_str = line_buffer_get_line_relative_to_current(buf, i);
-        char *line = mud_string_to_c_str(line_str);
+        color_string *line_str = line_buffer_get_line_relative_to_current(buf, i);
+        char *line = color_string_to_c_str(line_str);
         
-        int res = pcre_exec(compiled_regex, extra, line, mud_string_length(line_str), 0, 0, offsets, 99);
+        int res = pcre_exec(compiled_regex, extra, line, color_string_length(line_str), 0, 0, offsets, 99);
         if(res >= 0) {
             // Success!
             result->line_number = i;

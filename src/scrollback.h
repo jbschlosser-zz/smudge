@@ -15,7 +15,7 @@ scrollback *scrollback_create(line_buffer *data);
 void scrollback_destroy(scrollback *sb);
 
 // Member functions.
-void scrollback_write(scrollback *sb, mud_char_t *data, int len);
+void scrollback_write(scrollback *sb, color_char *data, int len);
 int scrollback_get_scroll(scrollback *sb);
 void scrollback_set_scroll(scrollback *sb, int index);
 void scrollback_adjust_scroll(scrollback *sb, int adjustment);

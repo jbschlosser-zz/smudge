@@ -1,7 +1,7 @@
 #ifndef MWINDOW_H
 #define MWINDOW_H
 
-#include "mud_string.h"
+#include "color_string.h"
 #include "window_ops.h"
 
 typedef struct
@@ -15,8 +15,8 @@ mud_window *mud_window_create(window_ops wops, int y_loc, int x_loc, int lines, 
 void mud_window_destroy(mud_window *mwin);
 
 // Member functions.
-void mud_window_add_char(mud_window *mwin, mud_char_t ch);
-void mud_window_write_text(mud_window *mwin, mud_char_t *text, int len);
+void mud_window_add_char(mud_window *mwin, color_char ch);
+void mud_window_write_text(mud_window *mwin, color_char *text, int len);
 void mud_window_clear(mud_window *mwin);
 void mud_window_refresh(mud_window *main);
 int mud_window_get_max_lines(mud_window *mwin);

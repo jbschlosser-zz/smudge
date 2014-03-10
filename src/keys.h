@@ -1,10 +1,10 @@
 #ifndef KEYS_H
 #define KEYS_H
 
-#include "mud_session.h"
-#include "mud_ui.h"
+#include "session.h"
+#include "user_interface.h"
 
-typedef void (*key_binding)(mud_session *session, mud_ui *ui, int key);
+typedef void (*key_binding)(session *session, user_interface *ui, int key);
 
 typedef struct _table_entry {
     int keycode;
@@ -24,19 +24,19 @@ key_binding key_binding_table_get_binding(key_binding_table *kb, int keycode);
 void key_binding_table_destroy(key_binding_table *kb);
 
 // Key binding functions.
-void key_binding_unset(mud_session *session, mud_ui *ui, int key);
-void key_binding_do_nothing(mud_session *session, mud_ui *ui, int key);
-void key_binding_page_up(mud_session *session, mud_ui *ui, int key);
-void key_binding_page_down(mud_session *session, mud_ui *ui, int key);
-void key_binding_history_back(mud_session *session, mud_ui *ui, int key);
-void key_binding_history_forward(mud_session *session, mud_ui *ui, int key);
-void key_binding_history_forward_end(mud_session *session, mud_ui *ui, int key);
-void key_binding_add_input_char(mud_session *session, mud_ui *ui, int key);
-void key_binding_delete_input_char(mud_session *session, mud_ui *ui, int key);
-void key_binding_backspace_input_char(mud_session *session, mud_ui *ui, int key);
-void key_binding_input_cursor_left(mud_session *session, mud_ui *ui, int key);
-void key_binding_input_cursor_right(mud_session *session, mud_ui *ui, int key);
-void key_binding_search(mud_session *session, mud_ui *ui, int key);
-void key_binding_submit_input(mud_session *session, mud_ui *ui, int key);
+void key_binding_unset(session *session, user_interface *ui, int key);
+void key_binding_do_nothing(session *session, user_interface *ui, int key);
+void key_binding_page_up(session *session, user_interface *ui, int key);
+void key_binding_page_down(session *session, user_interface *ui, int key);
+void key_binding_history_back(session *session, user_interface *ui, int key);
+void key_binding_history_forward(session *session, user_interface *ui, int key);
+void key_binding_history_forward_end(session *session, user_interface *ui, int key);
+void key_binding_add_input_char(session *session, user_interface *ui, int key);
+void key_binding_delete_input_char(session *session, user_interface *ui, int key);
+void key_binding_backspace_input_char(session *session, user_interface *ui, int key);
+void key_binding_input_cursor_left(session *session, user_interface *ui, int key);
+void key_binding_input_cursor_right(session *session, user_interface *ui, int key);
+void key_binding_search(session *session, user_interface *ui, int key);
+void key_binding_submit_input(session *session, user_interface *ui, int key);
 
 #endif

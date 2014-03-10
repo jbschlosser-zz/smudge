@@ -20,13 +20,13 @@ void history_destroy(history *hist)
     free(hist);
 }
 
-void history_add_entry(history *hist, mud_string *entry)
+void history_add_entry(history *hist, color_string *entry)
 {
     if(!hist) return;
     if(!entry) return;
 
-    line_buffer_write(hist->_data, mud_string_get_data(entry), mud_string_length(entry));
-    mud_char_t newline = '\n';
+    line_buffer_write(hist->_data, color_string_get_data(entry), color_string_length(entry));
+    color_char newline = '\n';
     line_buffer_write(hist->_data, &newline, 1);
 
     // Adjust the index so that, if not pointing to the most recent entry, the current stays
@@ -35,7 +35,7 @@ void history_add_entry(history *hist, mud_string *entry)
         ++hist->_history_index;
 }
 
-mud_string *history_get_current_entry(history *hist)
+color_string *history_get_current_entry(history *hist)
 {
     if(!hist) return NULL;
 

@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
-#include "mud_string.h"
+#include "color_string.h"
 
 void init_color_pairs()
 {
@@ -15,21 +15,21 @@ void init_color_pairs()
     init_pair(INPUT_LINE_COLOR_PAIR, COLOR_BLACK, COLOR_CYAN);
 }
 
-mud_string *mud_string_create(int max_size, mud_char_t* initial_str, int len)
+color_string *color_string_create(int max_size, color_char* initial_str, int len)
 {
-    mud_string *str = mud_string_create_empty(max_size);
+    color_string *str = color_string_create_empty(max_size);
     if(!str) return NULL;
-    mud_string_append(str, initial_str, len);
+    color_string_append(str, initial_str, len);
 
     return str;
 }
 
-mud_string *mud_string_create_empty(int max_size)
+color_string *color_string_create_empty(int max_size)
 {
     if(max_size <= 0) return NULL;
 
-    mud_string *str = malloc(sizeof(mud_string));
-    str->_data = malloc(sizeof(mud_char_t) * max_size);
+    color_string *str = malloc(sizeof(color_string));
+    str->_data = malloc(sizeof(color_char) * max_size);
     str->_max_size = max_size;
     str->_block_size = max_size;
     str->_length = 0;
@@ -37,16 +37,16 @@ mud_string *mud_string_create_empty(int max_size)
     return str;
 }
 
-mud_string *mud_string_create_from_c_string(int max_size, const char *initial_str)
+color_string *color_string_create_from_c_string(int max_size, const char *initial_str)
 {
-    mud_string *str = mud_string_create_empty(max_size);
+    color_string *str = color_string_create_empty(max_size);
     if(!str) return NULL;
-    mud_string_append_c_str(str, initial_str, strlen(initial_str));
+    color_string_append_c_str(str, initial_str, strlen(initial_str));
 
     return str;
 }
 
-void mud_string_destroy(mud_string *str)
+void color_string_destroy(color_string *str)
 {
     if(!str) return;
 
@@ -54,16 +54,16 @@ void mud_string_destroy(mud_string *str)
     free(str);
 }
 
-int mud_string_length(mud_string *str)
+int color_string_length(color_string *str)
 {
     if(!str) return -1;
 
     return str->_length;
 }
 
-static mud_char_t *convert_str(const char *str, int len)
+static color_char *convert_str(const char *str, int len)
 {
-    mud_char_t *converted = malloc(sizeof(mud_char_t) * len);
+    color_char *converted = malloc(sizeof(color_char) * len);
     int i;
     for(i = 0; i < len; ++i)
         converted[i] = str[i];
@@ -71,7 +71,7 @@ static mud_char_t *convert_str(const char *str, int len)
     return converted;
 }
 
-void mud_string_append(mud_string *str, const mud_char_t *append_str, int len)
+void color_string_append(color_string *str, const color_char *append_str, int len)
 {
     if(!str) return;
     if(!append_str) return;
@@ -80,96 +80,96 @@ void mud_string_append(mud_string *str, const mud_char_t *append_str, int len)
     // Make sure there is enough space to write the data.
     while((str->_max_size - str->_length) < len) {
         str->_max_size = (str->_max_size + str->_block_size);
-        mud_char_t *new_data = malloc(sizeof(mud_char_t) * str->_max_size);
-        memcpy(new_data, str->_data, str->_length * sizeof(mud_char_t));
+        color_char *new_data = malloc(sizeof(color_char) * str->_max_size);
+        memcpy(new_data, str->_data, str->_length * sizeof(color_char));
         free(str->_data);
         str->_data = new_data;
     }
 
     // Copy in the string to append.
-    memcpy(str->_data + str->_length, append_str, len * sizeof(mud_char_t));
+    memcpy(str->_data + str->_length, append_str, len * sizeof(color_char));
     str->_length += len;
 }
 
-void mud_string_append_c_str(mud_string *str, const char *append_str, int len)
+void color_string_append_c_str(color_string *str, const char *append_str, int len)
 {
     if(!str) return;
     if(!append_str) return;
     if(len <= 0) return;
 
-    mud_char_t *converted = convert_str(append_str, len);
-    mud_string_append(str, converted, len);
+    color_char *converted = convert_str(append_str, len);
+    color_string_append(str, converted, len);
     free(converted);
 }
 
-void mud_string_insert(mud_string *str, int index, const mud_char_t *insert_str, int len)
+void color_string_insert(color_string *str, int index, const color_char *insert_str, int len)
 {
     if(!str) return;
-    if(index < 0 || index > mud_string_length(str)) return;
+    if(index < 0 || index > color_string_length(str)) return;
     if(!insert_str) return;
     if(len <= 0) return;
 
     // Make sure there is enough space to write the data.
     while((str->_max_size - str->_length) < len) {
         str->_max_size = (str->_max_size + str->_block_size);
-        mud_char_t *new_data = malloc(sizeof(mud_char_t) * str->_max_size);
-        memcpy(new_data, str->_data, str->_length * sizeof(mud_char_t));
+        color_char *new_data = malloc(sizeof(color_char) * str->_max_size);
+        memcpy(new_data, str->_data, str->_length * sizeof(color_char));
         free(str->_data);
         str->_data = new_data;
     }
 
     // Move the data that is in the way.
-    memmove(str->_data + index + len, str->_data + index, (str->_length - index) * sizeof(mud_char_t));
+    memmove(str->_data + index + len, str->_data + index, (str->_length - index) * sizeof(color_char));
 
     // Copy in the new data.
-    memcpy(str->_data + index, insert_str, len * sizeof(mud_char_t));
+    memcpy(str->_data + index, insert_str, len * sizeof(color_char));
 
     // Indicate that the length has changed.
     str->_length += len;
 }
 
-void mud_string_assign(mud_string *str, mud_string *other_str)
+void color_string_assign(color_string *str, color_string *other_str)
 {
     if(!str) return;
     if(!other_str) return;
 
     // Check if the string will fit in the currently allocated memory.
-    if(mud_string_length(other_str) > mud_string_length(str)) {
+    if(color_string_length(other_str) > color_string_length(str)) {
         // Allocate the same amount of space as the other string has.
         // TODO: Allocate in blocks.
         free(str->_data);
-        str->_data = malloc(other_str->_max_size * sizeof(mud_char_t));
+        str->_data = malloc(other_str->_max_size * sizeof(color_char));
         str->_block_size = other_str->_block_size;
         str->_max_size = other_str->_max_size;
     }
 
     // Copy over the data from the other string.
-    memcpy(str->_data, other_str->_data, other_str->_length * sizeof(mud_char_t));
+    memcpy(str->_data, other_str->_data, other_str->_length * sizeof(color_char));
     str->_length = other_str->_length;
 }
 
-void mud_string_clear(mud_string *str)
+void color_string_clear(color_string *str)
 {
     if(!str) return;
 
     str->_length = 0;
 }
 
-void mud_string_delete_char(mud_string *str, int index)
+void color_string_delete_char(color_string *str, int index)
 {
     if(!str) return;
     if(index < 0) return;
-    if(index >= mud_string_length(str)) return;
+    if(index >= color_string_length(str)) return;
 
     // Move down the characters after the deleted one.
     int i;
-    for(i = index + 1; i < mud_string_length(str); ++i) {
+    for(i = index + 1; i < color_string_length(str); ++i) {
         str->_data[i - 1] = str->_data[i];
     }
     --str->_length;
 }
 
-char *mud_string_to_c_str(mud_string *str)
+char *color_string_to_c_str(color_string *str)
 {
     if(!str) return NULL;
 
@@ -182,7 +182,7 @@ char *mud_string_to_c_str(mud_string *str)
     return c_str;
 }
 
-mud_char_t *mud_string_get_data(mud_string *str)
+color_char *color_string_get_data(color_string *str)
 {
     return str->_data;
 }

@@ -1,7 +1,7 @@
 #ifndef ESCAPE_SEQUENCE_H
 #define ESCAPE_SEQUENCE_H
 
-#include "mud_string.h"
+#include "color_string.h"
 
 #define ESCAPE_SEQUENCE_MAX_SIZE 15
 #define ESCAPE_SEQUENCE_BEGIN 0x1B // ESC character.
@@ -24,6 +24,6 @@ void esc_sequence_clear(esc_sequence *seq);
 int esc_sequence_update(esc_sequence *seq, char byte);
 
 // Extract character attributes (e.g. colors) from escape sequences.
-mud_char_t esc_sequence_get_char_attrs(esc_sequence *seq);
+color_char esc_sequence_get_char_attrs(esc_sequence *seq);
 
 #endif

@@ -1,14 +1,14 @@
 #include <stdlib.h>
-#include "mud_session.h"
+#include "session.h"
 
-mud_session *mud_session_create(mud_connection *connection, scrollback *output_data, history *hist, input_line *input_data)
+session *session_create(mud_connection *connection, scrollback *output_data, history *hist, input_line *input_data)
 {
     if(!connection) return NULL;
     if(!output_data) return NULL;
     if(!hist) return NULL;
     if(!input_data) return NULL;
 
-    mud_session *session = malloc(sizeof(mud_session));
+    session *session = malloc(sizeof(session));
     session->connection = connection;
     session->output_data = output_data;
     session->hist = hist;
@@ -21,7 +21,7 @@ mud_session *mud_session_create(mud_connection *connection, scrollback *output_d
     return session;
 }
 
-void mud_session_destroy(mud_session *session)
+void session_destroy(session *session)
 {
     if(!session) return;
 

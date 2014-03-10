@@ -7,10 +7,10 @@ line_buffer *line_buffer_create(int size_in_lines)
 
     /// TODO: add bailout logic for malloc calls resulting in NULL
     line_buffer *buf = malloc(sizeof(line_buffer));
-    buf->_lines = malloc(sizeof(mud_string*) * size_in_lines);
+    buf->_lines = malloc(sizeof(color_string*) * size_in_lines);
     int i;
     for(i = 0; i < size_in_lines; ++i)
-        buf->_lines[i] = mud_string_create_empty(128);
+        buf->_lines[i] = color_string_create_empty(128);
     buf->_size = size_in_lines;
     buf->_used = 1; // Count the first line as being in use.
     buf->_write_offset = 0;
@@ -24,7 +24,7 @@ void line_buffer_destroy(line_buffer *buf)
 
     int i;
     for(i = 0; i < buf->_size; ++i)
-        mud_string_destroy(buf->_lines[i]);
+        color_string_destroy(buf->_lines[i]);
     free(buf->_lines);
     free(buf);
 }
@@ -43,7 +43,7 @@ int line_buffer_num_lines(line_buffer *buf)
     return buf->_used;
 }
 
-void line_buffer_write(line_buffer *buf, const mud_char_t *source, const int len)
+void line_buffer_write(line_buffer *buf, const color_char *source, const int len)
 {
     if(!buf) return;
     if(!source) return;
@@ -52,7 +52,7 @@ void line_buffer_write(line_buffer *buf, const mud_char_t *source, const int len
     int i;
     for(i = 0; i < len; ++i) {
         // Write the character.
-        mud_string_append(buf->_lines[buf->_write_offset], &source[i], 1);
+        color_string_append(buf->_lines[buf->_write_offset], &source[i], 1);
 
         // Move to the next line if necessary.
         if((source[i] & 0xFF) == '\n') {
@@ -61,7 +61,7 @@ void line_buffer_write(line_buffer *buf, const mud_char_t *source, const int len
             // Check if a line will be overwritten (i.e. the buffer is full).
             if(buf->_used == buf->_size) {
                 // Clear the old line.
-                mud_string_clear(buf->_lines[buf->_write_offset]);
+                color_string_clear(buf->_lines[buf->_write_offset]);
             }
 
             // Update the count of lines in the buffer.
@@ -80,7 +80,7 @@ static int modulo(int n, int d)
     return ((n % d) + d) % d;
 }
 
-mud_string *line_buffer_get_line(line_buffer *buf, int index)
+color_string *line_buffer_get_line(line_buffer *buf, int index)
 {
     if(!buf) return NULL;
     if(index < 0) return NULL;
@@ -90,7 +90,7 @@ mud_string *line_buffer_get_line(line_buffer *buf, int index)
     return buf->_lines[line_index];
 }
 
-mud_string *line_buffer_get_line_relative_to_current(line_buffer *buf, int lines_back)
+color_string *line_buffer_get_line_relative_to_current(line_buffer *buf, int lines_back)
 {
     if(!buf) return NULL;
     if(lines_back < 0) return NULL;

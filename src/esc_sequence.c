@@ -57,7 +57,7 @@ int esc_sequence_update(esc_sequence *seq, char byte)
     return 1;
 }
 
-mud_char_t esc_sequence_get_char_attrs(esc_sequence *seq)
+color_char esc_sequence_get_char_attrs(esc_sequence *seq)
 {
     if(!seq) return -1;
 
@@ -82,7 +82,7 @@ mud_char_t esc_sequence_get_char_attrs(esc_sequence *seq)
     int attr = -1;
     int fg = -1;
     int bg = -1;
-    mud_char_t char_attrs = 0;
+    color_char char_attrs = 0;
     int available = sscanf(seq->data + 1, "[%d;%d;%dm", &attr, &fg, &bg);
     if(available < 1)
         return -1;

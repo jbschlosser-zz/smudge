@@ -27,19 +27,19 @@ void mud_window_destroy(mud_window *mwin)
     free(mwin);
 }
 
-void mud_window_add_char(mud_window *mwin, mud_char_t ch)
+void mud_window_add_char(mud_window *mwin, color_char ch)
 {
     if(!mwin) return;
 
     waddch(mwin->_win, ch);
 }
 
-void mud_window_write_text(mud_window *mwin, mud_char_t *text, int len)
+void mud_window_write_text(mud_window *mwin, color_char *text, int len)
 {
     if(!mwin) return;
     
     int i;
-    mud_char_t char_to_add;
+    color_char char_to_add;
 
     for(i = 0; i < len; ++i) {
         // Add the character to the window to be displayed.
