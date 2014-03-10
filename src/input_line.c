@@ -6,6 +6,7 @@ input_line *input_line_create(void)
     input_line *input = malloc(sizeof(input_line));
     input->_data = color_string_create_empty(256);
     input->_cursor_index = 0;
+    input->_dirty = false;
 
     return input;
 }
