@@ -9,7 +9,7 @@
 #include "session.h"
 #include "user_interface.h"
 
-#define RECV_BUFFER_MAX_SIZE 24576
+#define MAIN_BUFFER_MAX_SIZE 24576
 
 static SCM write_to_stderr(SCM output)
 {
@@ -120,14 +120,14 @@ void main_with_guile(void *data, int argc, char **argv)
     init_ncurses();
 
     // Create the UI.
-    user_interface *ui = user_interface_create(REAL_WINDOW_OPS, REAL_WINDOW_OPS, 0, 0, LINES, COLS);
+    user_interface *ui = user_interface_create(0, 0, LINES, COLS);
 
     // CREATE THE KEYBINDINGS.
     key_binding_table *bindings = key_binding_table_create();
 
     // MAIN LOOP.
     int input_keycode = 0x0;
-    color_char received_data[RECV_BUFFER_MAX_SIZE];
+    color_char received_data[MAIN_BUFFER_MAX_SIZE];
     while(1) {
         // Handle a resize if necessary.
         if(RESIZE_OCCURRED) {
@@ -149,7 +149,7 @@ void main_with_guile(void *data, int argc, char **argv)
         }
 
         // GET DATA FROM THE SERVER.
-        int received = mud_connection_receive(main_session->connection, received_data, RECV_BUFFER_MAX_SIZE);
+        int received = mud_connection_receive(main_session->connection, received_data, MAIN_BUFFER_MAX_SIZE);
         bool connected = mud_connection_connected(main_session->connection);
         if(received < 0 || !connected) {
             // TODO: Handle this case!
@@ -174,7 +174,7 @@ void main_with_guile(void *data, int argc, char **argv)
 
         // GET INPUT FROM THE USER.
         // Perform the function bound to the key.
-        input_keycode = user_interface_get_char(ui);
+        input_keycode = user_interface_get_user_input(ui);
         if(input_keycode == ERR) {
             usleep(10000);
         } else {
