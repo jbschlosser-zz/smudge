@@ -19,6 +19,6 @@ typedef struct {
 
 // Construction/destruction.
 session *session_create(mud_connection *connection, scrollback *output_data, history *hist, input_line *input_data);
-void session_destroy(session *session);
+void session_destroy(session *sess);
 
 #endif

@@ -8,26 +8,26 @@ session *session_create(mud_connection *connection, scrollback *output_data, his
     if(!hist) return NULL;
     if(!input_data) return NULL;
 
-    session *session = malloc(sizeof(session));
-    session->connection = connection;
-    session->output_data = output_data;
-    session->hist = hist;
-    session->input_data = input_data;
+    session *sess = malloc(sizeof(session));
+    sess->connection = connection;
+    sess->output_data = output_data;
+    sess->hist = hist;
+    sess->input_data = input_data;
 
-    session->last_search_result.line_number = -1;
-    session->last_search_result.begin_index = -1;
-    session->last_search_result.end_index = -1;
+    sess->last_search_result.line_number = -1;
+    sess->last_search_result.begin_index = -1;
+    sess->last_search_result.end_index = -1;
 
-    return session;
+    return sess;
 }
 
-void session_destroy(session *session)
+void session_destroy(session *sess)
 {
-    if(!session) return;
+    if(!sess) return;
 
-    mud_connection_destroy(session->connection);
-    scrollback_destroy(session->output_data);
-    history_destroy(session->hist);
-    input_line_destroy(session->input_data);
-    free(session);
+    mud_connection_destroy(sess->connection);
+    scrollback_destroy(sess->output_data);
+    history_destroy(sess->hist);
+    input_line_destroy(sess->input_data);
+    free(sess);
 }
