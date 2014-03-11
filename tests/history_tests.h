@@ -18,15 +18,11 @@
  *
  */
 
-#include "socket_ops.h"
+#ifndef HISTORY_TESTS_H
+#define HISTORY_TESTS_H
 
-const socket_ops REAL_SOCKET_OPS = {
-    .freeaddrinfo = freeaddrinfo,
-    .getaddrinfo = getaddrinfo,
-    .socket = socket,
-    .connect = connect,
-    .select = select,
-    .send = send,
-    .recv = recv,
-    .ioctl = ioctl
-};
+#include <check.h>
+
+Suite *make_history_suite(void);
+
+#endif
