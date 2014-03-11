@@ -5,20 +5,26 @@ void init_guile(void)
     guile_current_session = NULL;
 
     // Set up the hooks.
-    scm_c_define_gsubr("write-to-stderr", 1, 0, 0, &write_to_stderr);
+    scm_c_define_gsubr("write-to-stderr", 1, 0, 0, &scheme_write_to_stderr);
     scm_c_define("send-command-hook", scm_make_hook(scm_from_int(1)));
-    scm_c_define_gsubr("send-command", 1, 0, 0, &send_command);
-    scm_c_define("config-filename", scm_from_locale_string("mud.scm"));
-    scm_c_define_gsubr("reload-config", 0, 0, 0, &load_config_file);
+    scm_c_define_gsubr("send-command", 1, 0, 0, &scheme_send_command);
+    scm_c_define("config-filename", scm_from_locale_string("mud.scm")); // TODO: Make this configurable.
+    scm_c_define_gsubr("reload-config", 0, 0, 0, &scheme_load_config_file);
+    scm_c_define_gsubr("search-backwards", 1, 0, 0, &scheme_search_backwards);
 
     // Load up regex support.
     scm_c_use_module("ice-9 regex");
 
     // Load the config file.
-    load_config_file();
+    scheme_load_config_file();
 }
 
-SCM write_to_stderr(SCM output)
+void set_guile_current_session(session *sess)
+{
+    guile_current_session = sess;
+}
+
+SCM scheme_write_to_stderr(SCM output)
 {
     char *str = scm_to_locale_string(output);
     fprintf(stderr, "%s", str);
@@ -27,7 +33,7 @@ SCM write_to_stderr(SCM output)
     return SCM_UNSPECIFIED;
 }
 
-SCM send_command(SCM command)
+SCM scheme_send_command(SCM command)
 {
     if(!guile_current_session) return SCM_BOOL_F;
 
@@ -38,14 +44,23 @@ SCM send_command(SCM command)
     return scm_from_int(result);
 }
 
-SCM load_config_file(void)
+SCM scheme_load_config_file(void)
 {
     scm_c_eval_string("(catch #t (lambda () (primitive-load config-filename)) (lambda (key . args) #t) (lambda (key . args) (display-backtrace (make-stack #t) (current-output-port))))");
 
     return SCM_UNSPECIFIED;
 }
 
-void set_guile_current_session(session *sess)
+SCM scheme_search_backwards(SCM search_str)
 {
-    guile_current_session = sess;
+    if(!guile_current_session) return SCM_BOOL_F;
+
+    char *str = scm_to_locale_string(search_str);
+    scrollback_search_backwards(
+        guile_current_session->output_data,
+        str,
+        &guile_current_session->last_search_result);
+    free(str);
+
+    return SCM_UNSPECIFIED;
 }

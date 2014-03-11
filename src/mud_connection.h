@@ -9,14 +9,16 @@
 
 #define RECV_BUFFER_MAX_SIZE 4096
 
+// Connection a MUD server.
 typedef struct {
     socket_ops _sock_ops;
     int _fd;
     bool _connected;
     char _recv_buf[RECV_BUFFER_MAX_SIZE];
-    telnet *_telnet;
-    esc_sequence *_esc_sequence;
-    color_char _current_char_attrs; // Contains the most recent set of character attributes (e.g. bold, blink, color, etc.) to apply to text.
+    telnet *_telnet; // Telnet state machine.
+    esc_sequence *_esc_sequence; // ESC sequence state machine.
+    color_char _current_char_attrs; // Contains the most recent set of character attributes
+                                    // (e.g. bold, blink, color, etc.) to apply to text.
 } mud_connection;
 
 // Construction/destruction.

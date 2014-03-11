@@ -44,7 +44,7 @@ int telnet_update(telnet *tel, unsigned char byte)
         tel->cmd[tel->cmd_len++] = byte;
         switch(byte)
         {
-            // Single byte commands.
+            // Two-byte commands.
             case TELNET_IAC:
             case TELNET_NOP:
             case TELNET_DATA_MARK:
@@ -57,16 +57,17 @@ int telnet_update(telnet *tel, unsigned char byte)
             case TELNET_GA:
                 tel->cmd_ready = 1;
                 break;
-            // Multiple byte commands.
+            // Three-byte commands.
             case TELNET_WILL:
             case TELNET_WONT:
             case TELNET_DO:
             case TELNET_DONT:
+            // >3 byte command.
             case TELNET_SB:
                 // Not quite ready yet... need more bytes.
                 break;
             default:
-                // An unknown command... ignore it.
+                // An unknown command... ignore it and start over.
                 telnet_clear_cmd(tel);
                 break;
         }
@@ -75,7 +76,7 @@ int telnet_update(telnet *tel, unsigned char byte)
         tel->cmd[tel->cmd_len++] = byte;
         switch(prev_byte)
         {
-            // Two byte commands.
+            // Three-byte commands.
             case TELNET_WILL:
             case TELNET_WONT:
             case TELNET_DO:

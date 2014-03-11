@@ -30,6 +30,10 @@
                                    // here. The only command that spans over three total bytes
                                    // is sub-negotiation.
 
+// State machine for extracting telnet commands. Once the beginning of
+// a command is seen, subsequent data is stored until the end of
+// the command or until an arbitrary max length. The ready flag will
+// then be set to indicate that the command should be handled externally.
 typedef struct {
     unsigned char cmd[TELNET_MAX_COMMAND_SIZE]; // Stores the full telnet command in progress.
     int cmd_len; // The length of the telnet command in progress

@@ -1,4 +1,4 @@
-AC_INIT([mud], [1.0], [no@where.com])
+AC_INIT([smudge], [0.0.1], [jbschlosser@gmail.com])
 AM_INIT_AUTOMAKE([foreign -Wall -Werror])
 AC_PROG_CC
 AC_PROG_RANLIB

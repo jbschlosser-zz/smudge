@@ -4,6 +4,7 @@
 #include <pcre.h>
 #include "line_buffer.h"
 
+// The result of a search.
 typedef struct {
     int line_number;
     int begin_index;

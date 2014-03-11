@@ -3,10 +3,13 @@
 
 #include "color_string.h"
 
+// Input line for accepting user input.
 typedef struct {
     color_string *_data;
-    int _cursor_index;
-    bool _dirty;
+    int _cursor_index; // 0 is the far left cursor position in the line; positive
+                       // moves right.
+    bool _dirty; // Indicates whether the input line has changed. Used to decide
+                 // when the user interface should redraw the line.
 } input_line;
 
 // Construction/destruction.

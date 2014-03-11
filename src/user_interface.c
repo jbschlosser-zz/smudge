@@ -80,6 +80,8 @@ static void populate_window_with_scrollback(WINDOW *win, line_buffer *output_dat
     int win_size_cols;
     getmaxyx(win, win_size_lines, win_size_cols);
 
+    // TODO: This could be cleaned up a bit.
+
     // Scrolling all the way back is a special case.
     if(scrollback_index >= line_buffer_num_lines(output_data) - win_size_lines) {
         // Write lines starting at the first line in the scrollback buffer,

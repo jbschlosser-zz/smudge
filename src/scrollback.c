@@ -64,16 +64,16 @@ void scrollback_adjust_scroll(scrollback *sb, int adjustment)
     scrollback_set_scroll(sb, (sb->_scroll_index + adjustment));
 }
 
-void scrollback_search_backwards(scrollback *sb, int starting_line, const char* str, search_result *result)
+void scrollback_search_backwards(scrollback *sb, const char* str, search_result *result)
 {
     if(!sb) return;
     if(!result) return;
 
     // Check if a previous search has occurred.
     int search_start_line = 0;
-    bool previous_match_present = (result->line_number != -1);
+    bool previous_match_present = (result->line_number != -1 /* TODO: Make sure the same string is being searched for. */);
     if(previous_match_present) {
-        // Indicate that the search should start from the location of the last result->
+        // Indicate that the search should start from the location of the last result.
         search_start_line = result->line_number + 1;
 
         // Clear out any previous match.

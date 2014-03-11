@@ -8,6 +8,8 @@
 #include <sys/time.h>
 #include <sys/types.h>
 
+// Socket operations. This provides a seam for unit testing
+// units that use sockets.
 typedef struct
 {
     void (*freeaddrinfo) (struct addrinfo *res);

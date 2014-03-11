@@ -9,6 +9,7 @@
 #include "scrollback.h"
 #include "search.h"
 
+// Stores all state corresponding to a single MUD session.
 typedef struct {
     mud_connection *connection;
     scrollback *output_data;

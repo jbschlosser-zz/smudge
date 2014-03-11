@@ -3,6 +3,9 @@
 
 #include "color_string.h"
 
+// Cirular buffer that operates on a line basis. Lines
+// can be any length. When the buffer is full, oldest
+// lines will be dumped to make way for new lines.
 typedef struct {
     color_string **_lines; // Contains the lines data.
     int _size; // The total size of the buffer in lines.

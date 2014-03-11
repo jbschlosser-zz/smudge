@@ -3,9 +3,11 @@
 
 #include "line_buffer.h"
 
+// A history of commands sent by the user.
 typedef struct {
     line_buffer *_data;
-    int _history_index;
+    int _history_index; // 0 corresponds to the current entry; positive numbers
+                        // go back through the history.
 } history;
 
 // Construction/destruction.

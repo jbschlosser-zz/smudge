@@ -20,11 +20,13 @@ typedef chtype color_char;
 // Sets up the color pairs as listed above.
 void init_color_pairs(void);
 
-// A string of colored characters.
+// A string of colored characters. Strings are automatically resized
+// when necessary.
 typedef struct {
     color_char *_data; // The character data.
     int _max_size; // The max size of character data that can fit in the string.
-    int _block_size; // The size of blocks allocated to hold characters.
+    int _block_size; // The size of blocks allocated to hold characters. TODO: Implement
+                     // growth by some factor (e.g. 1.5 or 2) of current size instead.
     int _length; // The number of characters currently in the string.
 } color_string;
 

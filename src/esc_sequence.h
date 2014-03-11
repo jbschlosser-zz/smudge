@@ -7,6 +7,11 @@
 #define ESCAPE_SEQUENCE_BEGIN 0x1B // ESC character.
 #define ESCAPE_SEQUENCE_END 0x6D // 'm' character.
 
+// State machine for extracting ESC sequences. Once the beginning of
+// a sequence is seen, subsequent data is stored until the end of
+// the sequence or until an arbitrary max length. The ready flag
+// will then be set to indicate that the ESC sequence should be
+// handled externally.
 typedef struct {
     char data[ESCAPE_SEQUENCE_MAX_SIZE + 1]; // +1 for NULL terminator.
     int len;
