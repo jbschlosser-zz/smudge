@@ -6,11 +6,14 @@
 !src
 !tests
 !tests
+!examples
+!examples/mud.scm
 !*.h
 !*.c
 !Makefile.am
 !configure.ac
 !README.md
+!COPYING
 !.gitignore
 !autogen.sh
 
