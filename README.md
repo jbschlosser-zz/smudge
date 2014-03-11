@@ -2,7 +2,7 @@
 
 ## Introduction
 smudge is an ncurses-based Multi-User Dungeon (MUD) client scriptable with Scheme.
-It exists because I like MUDs, curses interfaces, and Lisp dialects. Since MUds are text-based, a
+It exists because I like MUDs, curses interfaces, and Lisp dialects. Since MUDs are text-based, a
 curses interface seems appropriate. I was also excited about the possible features I could
 implement with the power of Scheme. smudge is based on an older client known as mcl, although
 it shares no code whatsoever with it. I liked the general interface of mcl, but it wasn't ideal
@@ -22,8 +22,11 @@ it useful in any way, that's just icing on the cake.
 Note that the client is currently in super-alpha stage. It works fine for basic stuff, but there are chunks of
 functionality missing (notably auto-mapping). Feel free to mess with it at your leisure.
 
+* Basic MUD server/client interaction (DONE)
+* ANSI colors (DONE)
 * Terminal resizing support (DONE)
-* Scrollback support (MOSTLY DONE)
+* Scrollback support (DONE; one known issue)
+* Telnet command support (MOSTLY DONE)
 * Regex searching of the scrollback buffer (MOSTLY DONE)
 * Scheme interaction
   * Hooks for user input (aliases, backtracking, speedwalk) (DONE; see example mud.scm)
@@ -33,3 +36,5 @@ functionality missing (notably auto-mapping). Feel free to mess with it at your 
   * Set bindings in code (DONE)
   * Set bindings from Scheme (NOT STARTED)
 * Auto-mapping (NOT STARTED)
+* Mud Client Compression Protocol (MCCP) support (NOT STARTED)
+* Mud Extension Protocol (MXP) support (NOT STARTED)
