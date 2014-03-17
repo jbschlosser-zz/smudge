@@ -113,10 +113,12 @@ void input_line_set_cursor(input_line *input, int index)
     if(!input) return;
 
     input->_cursor_index = index;
-    if(input->_cursor_index < 0)
+    if(input->_cursor_index < 0) {
         input->_cursor_index = 0;
-    if(input->_cursor_index > color_string_length(input->_data))
+    }
+    if(input->_cursor_index > color_string_length(input->_data)) {
         input->_cursor_index = color_string_length(input->_data);
+    }
     input->_dirty = true;
 }
 

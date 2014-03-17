@@ -69,8 +69,9 @@ static _key_binding_table_entry *key_binding_table_get_entry(key_binding_table *
         // list to see if a binding is set for the keycode.
         _key_binding_table_entry *entry = kb_table->_bindings[hash_value];
         while(entry) {
-            if(entry->keycode == keycode)
+            if(entry->keycode == keycode) {
                 return entry;
+            }
             entry = entry->next;
         }
     }
@@ -109,8 +110,9 @@ action *key_binding_table_get_binding(key_binding_table *kb_table, int keycode)
 
     // Get the key binding entry for the keycode, if one exists.
     _key_binding_table_entry *entry = key_binding_table_get_entry(kb_table, keycode);
-    if(entry)
+    if(entry) {
         return entry->bound_action;
+    }
     return NULL;
 }
 

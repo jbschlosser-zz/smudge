@@ -85,8 +85,9 @@ static color_char *convert_str(const char *str, int len)
 {
     color_char *converted = malloc(sizeof(color_char) * len);
     int i;
-    for(i = 0; i < len; ++i)
+    for(i = 0; i < len; ++i) {
         converted[i] = str[i];
+    }
 
     return converted;
 }
@@ -195,8 +196,9 @@ char *color_string_to_c_str(color_string *str)
 
     char *c_str = malloc(str->_length + 1);
     int i;
-    for(i = 0; i < str->_length; ++i)
+    for(i = 0; i < str->_length; ++i) {
         c_str[i] = str->_data[i];
+    }
     c_str[str->_length] = '\0';
 
     return c_str;

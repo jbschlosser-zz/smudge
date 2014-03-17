@@ -38,8 +38,9 @@ void end_ncurses(void)
 
 user_interface *user_interface_create(int y_loc, int x_loc, int size_lines, int size_cols)
 {
-    if(y_loc < 0 || x_loc < 0 || size_lines <= 1 || size_cols <= 0)
+    if(y_loc < 0 || x_loc < 0 || size_lines <= 1 || size_cols <= 0) {
         return NULL;
+    }
 
     user_interface *ui = malloc(sizeof(user_interface));
     ui->_output_window = newwin(size_lines - 1, size_cols, y_loc, x_loc);

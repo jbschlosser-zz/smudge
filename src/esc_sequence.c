@@ -85,15 +85,17 @@ color_char esc_sequence_get_char_attrs(esc_sequence *seq)
     static regex_t esc_sequence_regex;
     static bool regex_initialized = false;
     if(!regex_initialized) {
-        if(regcomp(&esc_sequence_regex, "^\\[([0-9]+|[0-9]+;[0-9]+|[0-9]+;[0-9]+;[0-9]+)m$", REG_EXTENDED) != 0)
+        if(regcomp(&esc_sequence_regex, "^\\[([0-9]+|[0-9]+;[0-9]+|[0-9]+;[0-9]+;[0-9]+)m$", REG_EXTENDED) != 0) {
             return -1;
+        }
         regex_initialized = true;
     }
 
     // Check if the escape sequence matches the regex.
     int regex_result = regexec(&esc_sequence_regex, seq->data + 1 /* skip the ESC character */, 0, NULL, 0);
-    if(regex_result == REG_NOMATCH)
+    if(regex_result == REG_NOMATCH) {
         return -1;
+    }
 
     // Extract the information from the escape sequence. Three pieces of
     // information are potentially available: a character attribute (e.g.
@@ -104,8 +106,9 @@ color_char esc_sequence_get_char_attrs(esc_sequence *seq)
     int bg = -1;
     color_char char_attrs = 0;
     int available = sscanf(seq->data + 1, "[%d;%d;%dm", &attr, &fg, &bg);
-    if(available < 1)
+    if(available < 1) {
         return -1;
+    }
     if(available >= 1) {
         switch(attr) {
             case 0:

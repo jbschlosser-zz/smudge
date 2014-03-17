@@ -29,8 +29,9 @@ line_buffer *line_buffer_create(int size_in_lines)
     line_buffer *buf = malloc(sizeof(line_buffer));
     buf->_lines = malloc(sizeof(color_string*) * size_in_lines);
     int i;
-    for(i = 0; i < size_in_lines; ++i)
+    for(i = 0; i < size_in_lines; ++i) {
         buf->_lines[i] = color_string_create_empty(128);
+    }
     buf->_size = size_in_lines;
     buf->_used = 1; // Count the first line as being in use.
     buf->_write_offset = 0;
@@ -43,8 +44,9 @@ void line_buffer_destroy(line_buffer *buf)
     if(!buf) return;
 
     int i;
-    for(i = 0; i < buf->_size; ++i)
+    for(i = 0; i < buf->_size; ++i) {
         color_string_destroy(buf->_lines[i]);
+    }
     free(buf->_lines);
     free(buf);
 }
@@ -95,8 +97,9 @@ void line_buffer_write(line_buffer *buf, const color_char *source, const int len
 // Performs n % d in the mathematical way.
 static int modulo(int n, int d)
 {
-    if(d < 0)
+    if(d < 0) {
         d = -d;
+    }
     return ((n % d) + d) % d;
 }
 

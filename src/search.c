@@ -60,8 +60,9 @@ bool search_buffer(line_buffer *buf, int starting_line, const char* str, search_
             result->end_index = offsets[1];
             free(line);
             pcre_free(compiled_regex);
-            if(extra)
+            if(extra) {
                 pcre_free(extra);
+            }
             return true;
         }
 
@@ -69,8 +70,9 @@ bool search_buffer(line_buffer *buf, int starting_line, const char* str, search_
     }
 
     pcre_free(compiled_regex);
-    if(extra)
+    if(extra) {
         pcre_free(extra);
+    }
 
     return false;
 }

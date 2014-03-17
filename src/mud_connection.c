@@ -55,8 +55,9 @@ bool mud_connection_connect(mud_connection *mc, const char *hostname, const char
 
     struct addrinfo *address_info;
     bool addr_info_retrieved = (mc->_sock_ops.getaddrinfo(hostname, port_number, NULL, &address_info) == 0);
-    if(!addr_info_retrieved)
+    if(!addr_info_retrieved) {
         return false;
+    }
     mc->_fd = mc->_sock_ops.socket(address_info->ai_family, address_info->ai_socktype, address_info->ai_protocol);
     bool fd_valid = (mc->_fd != -1);
     if(!fd_valid) {
@@ -125,8 +126,9 @@ static color_char process_byte(mud_connection *mc, unsigned char byte)
     }
 
     // Ignore carriage returns.
-    if(byte == 0xD)
+    if(byte == 0xD) {
         return 0;
+    }
 
     return byte;
 }

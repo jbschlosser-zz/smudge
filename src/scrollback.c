@@ -52,8 +52,9 @@ void scrollback_write(scrollback *sb, color_char *data, int len)
     int lines_before = line_buffer_num_lines(sb->_data);
     line_buffer_write(sb->_data, data, len);
     int lines_after = line_buffer_num_lines(sb->_data);
-    if(scrollback_get_scroll(sb) > 0)
+    if(scrollback_get_scroll(sb) > 0) {
         scrollback_adjust_scroll(sb, lines_after - lines_before);
+    }
     sb->_dirty = true;
 }
 
@@ -70,10 +71,12 @@ void scrollback_set_scroll(scrollback *sb, int index)
 
     // TODO: Fix this so that it works properly with the window size.
     sb->_scroll_index = index;
-    if(sb->_scroll_index < 0)
+    if(sb->_scroll_index < 0) {
         sb->_scroll_index = 0;
-    if(sb->_scroll_index >= line_buffer_num_lines(sb->_data))
+    }
+    if(sb->_scroll_index >= line_buffer_num_lines(sb->_data)) {
         sb->_scroll_index = (line_buffer_num_lines(sb->_data) - 1);
+    }
     sb->_dirty = true;
 }
 
@@ -118,8 +121,9 @@ void scrollback_search_backwards(scrollback *sb, const char* str, search_result 
         scrollback_set_scroll(sb, result->line_number);
         color_char *line_with_result = color_string_get_data(line_buffer_get_line_relative_to_current(sb->_data, result->line_number));
         int j;
-        for(j = result->begin_index; j < result->end_index; ++j)
+        for(j = result->begin_index; j < result->end_index; ++j) {
             line_with_result[j] = line_with_result[j] | A_STANDOUT;
+        }
     } else {
         // No match was found.
         // TODO: Make this cleaner.
