@@ -29,7 +29,7 @@
 
 #define RECV_BUFFER_MAX_SIZE 4096
 
-// Connection a MUD server.
+// Connection to a MUD server.
 typedef struct {
     socket_ops _sock_ops;
     int _fd;
