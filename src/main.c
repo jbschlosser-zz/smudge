@@ -24,6 +24,7 @@
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
+#include "action.h"
 #include "guile.h"
 #include "keys.h"
 #include "session.h"
@@ -47,10 +48,10 @@ void main_with_guile(void *data, int argc, char **argv)
 
     // SET UP SIGNAL HANDLERS.
     // Handle the window resize signal.
-    struct sigaction action;
-    memset(&action, 0x00, sizeof(action));
-    action.sa_handler = signal_handler;
-    sigaction(SIGWINCH, &action, NULL);
+    struct sigaction signal_action;
+    memset(&signal_action, 0x00, sizeof(signal_action));
+    signal_action.sa_handler = signal_handler;
+    sigaction(SIGWINCH, &signal_action, NULL);
 
     // Purposely ignore SIGPIPE. When socket errors occur, they should
     // be checked for and handled at the location they occur.
@@ -140,11 +141,15 @@ void main_with_guile(void *data, int argc, char **argv)
         if(input_keycode == ERR) {
             usleep(10000);
         } else {
-            key_binding binding = key_binding_table_get_binding(bindings, input_keycode);
-            if(binding)
-                binding(main_session, ui, input_keycode);
-            else
-                key_binding_unset(main_session, ui, input_keycode);
+            action *act = key_binding_table_get_binding(bindings, input_keycode);
+            if(act) {
+                act->perform(act, main_session, ui);
+            } else {
+                // Indicate that the key is unbound.
+                act = (action*)unset_key_binding_action_create(input_keycode);
+                act->perform(act, main_session, ui);
+                act->destroy(act);
+            }
         }
     }
 

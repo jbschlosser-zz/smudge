@@ -18,9 +18,6 @@
  *
  */
 
-#include <libguile.h>
-#include <string.h>
-#include <syslog.h>
 #include "keys.h"
 
 key_binding_table *key_binding_table_create(void)
@@ -31,26 +28,29 @@ key_binding_table *key_binding_table_create(void)
     
     // Initialize the keybindings.
     int i;
-    for(i = 0; i < kb_table->_buckets; ++i)
+    for(i = 0; i < kb_table->_buckets; ++i) {
         kb_table->_bindings[i] = NULL;
+    }
 
     // Set the default keybindings.
-    key_binding_table_set_binding(kb_table, 0xD, key_binding_do_nothing);
-    key_binding_table_set_binding(kb_table, KEY_RESIZE, key_binding_do_nothing);
-    key_binding_table_set_binding(kb_table, 27, key_binding_history_forward_end);
-    key_binding_table_set_binding(kb_table, KEY_UP, key_binding_history_back);
-    key_binding_table_set_binding(kb_table, KEY_DOWN, key_binding_history_forward);
-    key_binding_table_set_binding(kb_table, 127 /* BACKSPACE. */, key_binding_backspace_input_char);
-    key_binding_table_set_binding(kb_table, KEY_BACKSPACE, key_binding_backspace_input_char);
-    key_binding_table_set_binding(kb_table, 330 /* DELETE. */, key_binding_delete_input_char);
-    key_binding_table_set_binding(kb_table, KEY_PPAGE, key_binding_page_up);
-    key_binding_table_set_binding(kb_table, KEY_NPAGE, key_binding_page_down);
-    key_binding_table_set_binding(kb_table, KEY_HOME, key_binding_search);
-    key_binding_table_set_binding(kb_table, 0xA, key_binding_submit_input);
-    key_binding_table_set_binding(kb_table, KEY_LEFT, key_binding_input_cursor_left);
-    key_binding_table_set_binding(kb_table, KEY_RIGHT, key_binding_input_cursor_right);
-    for(i = 32; i<= 126; ++i)
-        key_binding_table_set_binding(kb_table, i, key_binding_add_input_char);
+    key_binding_table_set_binding(kb_table, 0xD, (action*)do_nothing_action_create());
+    key_binding_table_set_binding(kb_table, KEY_RESIZE, (action*)do_nothing_action_create());
+    key_binding_table_set_binding(kb_table, 27, (action*)history_forward_end_action_create());
+    key_binding_table_set_binding(kb_table, KEY_UP, (action*)history_back_action_create());
+    key_binding_table_set_binding(kb_table, KEY_DOWN, (action*)history_forward_action_create());
+    key_binding_table_set_binding(kb_table, 127 /* BACKSPACE. */, (action*)backspace_input_char_action_create());
+    key_binding_table_set_binding(kb_table, KEY_BACKSPACE, (action*)backspace_input_char_action_create());
+    key_binding_table_set_binding(kb_table, 330 /* DELETE. */, (action*)delete_input_char_action_create());
+    key_binding_table_set_binding(kb_table, KEY_PPAGE, (action*)page_up_action_create());
+    key_binding_table_set_binding(kb_table, KEY_NPAGE, (action*)page_down_action_create());
+    key_binding_table_set_binding(kb_table, KEY_HOME, (action*)search_backwards_from_input_line_action_create());
+    key_binding_table_set_binding(kb_table, 0xA, (action*)submit_from_input_line_action_create());
+    key_binding_table_set_binding(kb_table, KEY_LEFT, (action*)input_cursor_left_action_create());
+    key_binding_table_set_binding(kb_table, KEY_RIGHT, (action*)input_cursor_right_action_create());
+    for(i = 32; i<= 126; ++i) {
+        action *act = (action*)add_input_char_action_create((color_char)i);
+        key_binding_table_set_binding(kb_table, i, act);
+    }
 
     return kb_table;
 }
@@ -78,22 +78,22 @@ static _key_binding_table_entry *key_binding_table_get_entry(key_binding_table *
     return NULL;
 }
 
-void key_binding_table_set_binding(key_binding_table *kb_table, int keycode, key_binding binding)
+void key_binding_table_set_binding(key_binding_table *kb_table, int keycode, action *action_to_bind)
 {
     if(!kb_table) return;
     if(keycode < 0) return;
-    if(!binding) return;
+    if(!action_to_bind) return;
 
     // Check if an entry already exists.
     _key_binding_table_entry *current_entry = key_binding_table_get_entry(kb_table, keycode);
     if(current_entry) {
         // Set the binding for this key.
-        current_entry->binding = binding;
+        current_entry->bound_action = action_to_bind;
     } else {
         // No entry with the hash exists; create one.
         _key_binding_table_entry *new_entry = malloc(sizeof(_key_binding_table_entry));
         new_entry->keycode = keycode;
-        new_entry->binding = binding;
+        new_entry->bound_action = action_to_bind;
         int hash_value = key_binding_table_compute_hash(kb_table, keycode);
         new_entry->next = kb_table->_bindings[hash_value];
 
@@ -102,7 +102,7 @@ void key_binding_table_set_binding(key_binding_table *kb_table, int keycode, key
     }
 }
 
-key_binding key_binding_table_get_binding(key_binding_table *kb_table, int keycode)
+action *key_binding_table_get_binding(key_binding_table *kb_table, int keycode)
 {
     if(!kb_table) return NULL;
     if(keycode < 0) return NULL;
@@ -110,7 +110,7 @@ key_binding key_binding_table_get_binding(key_binding_table *kb_table, int keyco
     // Get the key binding entry for the keycode, if one exists.
     _key_binding_table_entry *entry = key_binding_table_get_entry(kb_table, keycode);
     if(entry)
-        return entry->binding;
+        return entry->bound_action;
     return NULL;
 }
 
@@ -120,124 +120,14 @@ void key_binding_table_destroy(key_binding_table *kb_table)
 
     int i;
     for(i = 0; i < kb_table->_buckets; ++i) {
-        _key_binding_table_entry *binding = kb_table->_bindings[i];
-        while(binding) {
-            _key_binding_table_entry *next_binding = binding->next;
-            free(binding);
-            binding = next_binding;
+        _key_binding_table_entry *binding_entry = kb_table->_bindings[i];
+        while(binding_entry) {
+            _key_binding_table_entry *next_binding_entry = binding_entry->next;
+            binding_entry->bound_action->destroy(binding_entry->bound_action);
+            free(binding_entry);
+            binding_entry = next_binding_entry;
         }
     }
     free(kb_table->_bindings);
     free(kb_table);
-}
-
-void key_binding_unset(session *sess, user_interface *ui, int key)
-{
-    char msg[1024];
-    sprintf(msg, "No binding set for key: %d\n", key);
-    color_string *unset_msg = color_string_create_from_c_string(128, msg);
-    scrollback_write(sess->output_data, color_string_get_data(unset_msg), color_string_length(unset_msg));
-    color_string_destroy(unset_msg);
-}
-
-void key_binding_do_nothing(session *sess, user_interface *ui, int key)
-{
-    // Intentionally do nothing.
-}
-
-void key_binding_page_up(session *sess, user_interface *ui, int key)
-{
-    scrollback_adjust_scroll(sess->output_data, 1);
-}
-
-void key_binding_page_down(session *sess, user_interface *ui, int key)
-{
-    scrollback_adjust_scroll(sess->output_data, -1);
-}
-
-void key_binding_history_back(session *sess, user_interface *ui, int key)
-{
-    history_adjust_pos(sess->hist, 1);
-    input_line_set_contents(sess->input_data, history_get_current_entry(sess->hist));
-    syslog(LOG_DEBUG, "History back: Setting input line contents to: %s", history_get_current_entry(sess->hist));
-}
-
-void key_binding_history_forward(session *sess, user_interface *ui, int key)
-{
-    history_adjust_pos(sess->hist, -1);
-    input_line_set_contents(sess->input_data, history_get_current_entry(sess->hist));
-    syslog(LOG_DEBUG, "History forward: Setting input line contents to: %s", history_get_current_entry(sess->hist));
-}
-
-void key_binding_history_forward_end(session *sess, user_interface *ui, int key)
-{
-    history_set_pos(sess->hist, 0);
-    input_line_set_contents(sess->input_data, history_get_current_entry(sess->hist));
-}
-
-void key_binding_add_input_char(session *sess, user_interface *ui, int key)
-{
-    color_char letter = key & 0xFF;
-    input_line_add_char(sess->input_data, letter);
-}
-
-void key_binding_delete_input_char(session *sess, user_interface *ui, int key)
-{
-    input_line_delete_char(sess->input_data);
-}
-
-void key_binding_backspace_input_char(session *sess, user_interface *ui, int key)
-{
-    input_line_backspace_char(sess->input_data);
-}
-
-void key_binding_input_cursor_left(session *sess, user_interface *ui, int key)
-{
-    input_line_adjust_cursor(sess->input_data, -1);
-}
-
-void key_binding_input_cursor_right(session *sess, user_interface *ui, int key)
-{
-    input_line_adjust_cursor(sess->input_data, 1);
-}
-
-void key_binding_search(session *sess, user_interface *ui, int key)
-{
-    char *search_str = color_string_to_c_str(input_line_get_contents(sess->input_data));
-    scrollback_search_backwards(sess->output_data, search_str, &sess->last_search_result);
-    free(search_str);
-}
-
-void key_binding_submit_input(session *sess, user_interface *ui, int key)
-{
-    // Get the current input.
-    color_string *current_input = input_line_get_contents(sess->input_data);
-
-    // Add the input to the history.
-    history_add_entry(sess->hist, current_input);
-    history_set_pos(sess->hist, 0);
-
-    // Run the hook if one is present.
-    char *input_c_str = color_string_to_c_str(current_input);
-    SCM symbol = scm_c_lookup("send-command-hook");
-    SCM send_command_hook = scm_variable_ref(symbol);
-    if(scm_is_true(scm_hook_p(send_command_hook)) && scm_is_false(scm_hook_empty_p(send_command_hook))) {
-        scm_c_run_hook(send_command_hook, scm_list_1(scm_from_locale_string(input_c_str)));
-    } else {
-        // Write the input to the output window.
-        scrollback_write(sess->output_data, color_string_get_data(current_input), color_string_length(current_input));
-        color_char NEWLINE = '\n';
-        scrollback_write(sess->output_data, &NEWLINE, 1);
-
-        // Send the command to the server.
-        int send_result = mud_connection_send_command(sess->connection, input_c_str, strlen(input_c_str));
-        if(send_result < 0) {
-            // TODO: Handle this case!
-            free(input_c_str);
-            return;
-        }
-    }
-
-    // Clear the input line.
-    input_line_clear(sess->input_data);
 }

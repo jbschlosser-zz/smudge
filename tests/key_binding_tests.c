@@ -29,10 +29,10 @@ START_TEST(test_get_binding_when_none_set)
     key_binding_table *kb_table = key_binding_table_create();
 
     // Act.
-    key_binding binding = key_binding_table_get_binding(kb_table, 1);
+    action *bound_action = key_binding_table_get_binding(kb_table, 1);
 
     // Assert.
-    ck_assert_ptr_eq(binding, NULL);
+    ck_assert_ptr_eq(bound_action, NULL);
 
     // Cleanup.
     key_binding_table_destroy(kb_table);
@@ -44,11 +44,11 @@ START_TEST(test_get_binding_when_set)
     key_binding_table *kb_table = key_binding_table_create();
 
     // Act.
-    key_binding_table_set_binding(kb_table, 1, key_binding_do_nothing);
-    key_binding binding = key_binding_table_get_binding(kb_table, 1);
+    key_binding_table_set_binding(kb_table, 1, (action*)do_nothing_action_create());
+    action *bound_action = key_binding_table_get_binding(kb_table, 1);
 
     // Assert.
-    ck_assert_ptr_eq(binding, key_binding_do_nothing);
+    ck_assert_ptr_eq(bound_action->perform, do_nothing_action_perform);
 
     // Cleanup.
     key_binding_table_destroy(kb_table);
@@ -60,12 +60,13 @@ START_TEST(test_get_binding_when_multiple_entries_with_same_hash)
     key_binding_table *kb_table = key_binding_table_create();
 
     // Act.
-    key_binding_table_set_binding(kb_table, 1, key_binding_do_nothing);
-    key_binding_table_set_binding(kb_table, 1 + kb_table->_buckets, key_binding_page_up);
+    key_binding_table_set_binding(kb_table, 1, (action*)do_nothing_action_create());
+    key_binding_table_set_binding(kb_table, 1 + kb_table->_buckets, (action*)page_up_action_create());
 
     // Assert.
-    ck_assert_ptr_eq(key_binding_table_get_binding(kb_table, 1), key_binding_do_nothing);
-    ck_assert_ptr_eq(key_binding_table_get_binding(kb_table, 1 + kb_table->_buckets), key_binding_page_up);
+    ck_assert_ptr_eq(key_binding_table_get_binding(kb_table, 1)->perform, do_nothing_action_perform);
+    ck_assert_ptr_eq(
+        key_binding_table_get_binding(kb_table, 1 + kb_table->_buckets)->perform, page_up_action_perform);
 
     // Cleanup.
     key_binding_table_destroy(kb_table);
@@ -77,14 +78,14 @@ START_TEST(test_get_binding_when_multiple_unrelated_entries)
     key_binding_table *kb_table = key_binding_table_create();
 
     // Act.
-    key_binding_table_set_binding(kb_table, 1, key_binding_do_nothing);
-    key_binding_table_set_binding(kb_table, 2, key_binding_page_up);
-    key_binding_table_set_binding(kb_table, 3, key_binding_page_down);
+    key_binding_table_set_binding(kb_table, 1, (action*)do_nothing_action_create());
+    key_binding_table_set_binding(kb_table, 2, (action*)page_up_action_create());
+    key_binding_table_set_binding(kb_table, 3, (action*)page_down_action_create());
 
     // Assert.
-    ck_assert_ptr_eq(key_binding_table_get_binding(kb_table, 1), key_binding_do_nothing);
-    ck_assert_ptr_eq(key_binding_table_get_binding(kb_table, 2), key_binding_page_up);
-    ck_assert_ptr_eq(key_binding_table_get_binding(kb_table, 3), key_binding_page_down);
+    ck_assert_ptr_eq(key_binding_table_get_binding(kb_table, 1)->perform, do_nothing_action_perform);
+    ck_assert_ptr_eq(key_binding_table_get_binding(kb_table, 2)->perform, page_up_action_perform);
+    ck_assert_ptr_eq(key_binding_table_get_binding(kb_table, 3)->perform, page_down_action_perform);
 
     // Cleanup.
     key_binding_table_destroy(kb_table);
