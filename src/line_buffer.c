@@ -73,9 +73,6 @@ void line_buffer_write(line_buffer *buf, const color_char *source, const int len
 
     int i;
     for(i = 0; i < len; ++i) {
-        // Write the character.
-        color_string_append(buf->_lines[buf->_write_offset], &source[i], 1);
-
         // Move to the next line if necessary.
         if((source[i] & 0xFF) == '\n') {
             buf->_write_offset = (buf->_write_offset + 1) % buf->_size;
@@ -90,6 +87,9 @@ void line_buffer_write(line_buffer *buf, const color_char *source, const int len
             ++buf->_used;
             if(buf->_used > buf->_size)
                 buf->_used = buf->_size;
+        } else {
+            // Write the character.
+            color_string_append(buf->_lines[buf->_write_offset], &source[i], 1);
         }
     }
 }

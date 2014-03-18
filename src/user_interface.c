@@ -47,6 +47,7 @@ user_interface *user_interface_create(int y_loc, int x_loc, int size_lines, int 
     ui->_input_line_window = newwin(1, size_cols, y_loc + size_lines - 1, x_loc);
 
     // Set things up.
+    scrollok(ui->_output_window, TRUE);
     wbkgd(ui->_input_line_window, COLOR_PAIR(INPUT_LINE_COLOR_PAIR));
     nodelay(ui->_input_line_window, TRUE); // Allows non-blocking checks for keypresses.
     keypad(ui->_input_line_window, TRUE); // Provide function keys as a single code.
@@ -101,62 +102,15 @@ static void populate_window_with_scrollback(WINDOW *win, line_buffer *output_dat
     int win_size_cols;
     getmaxyx(win, win_size_lines, win_size_cols);
 
-    // TODO: This could be cleaned up a bit.
-
-    // Scrolling all the way back is a special case.
-    if(scrollback_index >= line_buffer_num_lines(output_data) - win_size_lines) {
-        // Write lines starting at the first line in the scrollback buffer,
-        // ending when the window is full.
-        werase(win);
-        int i;
-        int win_lines_written = 0;
-        for(i = scrollback_index + win_size_lines - 1; i >= scrollback_index; --i) {
-            color_string *line = line_buffer_get_line_relative_to_current(output_data, i);
-            if(!line) continue;
-
-            // Write text from the line in increments of the number of columns
-            // available in the window.
-            int j;
-            for(j = 0; j < color_string_length(line); j += win_size_cols) {
-                int line_left = (color_string_length(line) - j);
-                int amount_to_write = (win_size_cols < line_left ? win_size_cols : line_left);
-                write_text_to_window(win, line->_data + j, amount_to_write);
-                ++win_lines_written;
-                if(win_lines_written == win_size_lines) break;
+    werase(win);
+    int i;
+    for(i = scrollback_index + win_size_lines; i >= scrollback_index; --i) {
+        color_string *line = line_buffer_get_line_relative_to_current(output_data, i);
+        if(line) {
+            write_text_to_window(win, color_string_get_data(line), color_string_length(line));
+            if(i != scrollback_index) {
+                waddch(win, '\n');
             }
-
-            if(win_lines_written == win_size_lines) break;
-        }
-    } else {
-        // Figure out which lines to write by counting window lines
-        // backwards from the scrollback position.
-        int win_lines_found = 0;
-        int line_start_index = 0;
-        int i;
-        for(i = scrollback_index; i < scrollback_index + win_size_lines; ++i) {
-            color_string *line = line_buffer_get_line_relative_to_current(output_data, i);
-            if(!line) break;
-
-            win_lines_found += (color_string_length(line) / (win_size_cols + 1)) + 1;
-            if(win_lines_found >= win_size_lines) {
-                while(win_lines_found > win_size_lines) {
-                    line_start_index += win_size_cols;
-                    --win_lines_found;
-                }
-                break;
-            }
-        }
-
-        // Write the lines.
-        werase(win);
-        int j;
-        for(j = i; j >= scrollback_index; --j) {
-            color_string *line = line_buffer_get_line_relative_to_current(output_data, j);
-            if(!line) continue;
-
-            write_text_to_window(win, line->_data + line_start_index, color_string_length(line) - line_start_index);
-
-            line_start_index = 0;
         }
     }
 }

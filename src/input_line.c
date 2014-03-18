@@ -42,7 +42,6 @@ void input_line_destroy(input_line *input)
 void input_line_add_char(input_line *input, color_char ch)
 {
     if(!input) return;
-    if(ch == '\n') return; // Don't allow newlines to be added to the input line.
 
     color_string_insert(input->_data, input_line_get_cursor(input), &ch, 1);
     ++input->_cursor_index;
