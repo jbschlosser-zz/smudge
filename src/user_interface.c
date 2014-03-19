@@ -96,33 +96,64 @@ static void write_text_to_window(WINDOW *win, color_char *text, int len)
     }
 }
 
-static void populate_window_with_scrollback(WINDOW *win, line_buffer *output_data, int scrollback_index)
+// Returns the scrollback index of the last line in the window. This helps cap the
+// scrollback based on the window size.
+static int populate_window_with_scrollback(WINDOW *win, line_buffer *output_data, int scrollback_index)
 {
+    // Write a window's worth of lines, ending with the line at the scrollback
+    // position.
     int win_size_lines;
     int win_size_cols;
     getmaxyx(win, win_size_lines, win_size_cols);
-
+    (void)win_size_cols;
     werase(win);
-    int i;
-    for(i = scrollback_index + win_size_lines; i >= scrollback_index; --i) {
-        color_string *line = line_buffer_get_line_relative_to_current(output_data, i);
+    int line_index;
+    for(line_index = scrollback_index + win_size_lines - 1; line_index >= scrollback_index; --line_index) {
+        color_string *line = line_buffer_get_line_relative_to_current(output_data, line_index);
         if(line) {
             write_text_to_window(win, color_string_get_data(line), color_string_length(line));
-            if(i != scrollback_index) {
+            if(line_index != scrollback_index) {
+                // Don't add a newline at the end.. the scrollback index line should be at
+                // the very bottom of the window.
                 waddch(win, '\n');
             }
         }
     }
+
+    // If the window isn't completely filled at this point,
+    // keep writing lines until it is.
+    int cursor_line;
+    int cursor_col;
+    getyx(win, cursor_line, cursor_col);
+    (void)cursor_col;
+    for (line_index = scrollback_index - 1;
+        (line_index >= 0) && (cursor_line != win_size_lines - 1);
+        --line_index, getyx(win, cursor_line, cursor_col))
+    {
+        waddch(win, '\n');
+        color_string *line = line_buffer_get_line_relative_to_current(output_data, line_index);
+        if(line) {
+            write_text_to_window(win, color_string_get_data(line), color_string_length(line));
+        }
+    }
+
+    // Return scrollback index of the last line that was written.
+    return (line_index + 1);
 }
 
-void user_interface_refresh_output_window(user_interface *ui, scrollback *sb)
+// Returns the scrollback index of the last line in the window.
+// TODO: There has to be a way to cap the scrollback to the
+// window size that is more intuitive.
+int user_interface_refresh_output_window(user_interface *ui, scrollback *sb)
 {
     // TODO: Fix this to use the public interface.
-    populate_window_with_scrollback(ui->_output_window, sb->_data, scrollback_get_scroll(sb));
+    int scroll_index = populate_window_with_scrollback(ui->_output_window, sb->_data, scrollback_get_scroll(sb));
     wrefresh(ui->_output_window);
 
     // Refresh the input line to keep the focus on it.
     wrefresh(ui->_input_line_window);
+
+    return scroll_index;
 }
 
 void user_interface_refresh_input_line_window(user_interface *ui, input_line *input)

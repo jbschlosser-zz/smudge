@@ -127,7 +127,11 @@ void main_with_guile(void *data, int argc, char **argv)
 
         // REFRESH THE UI.
         if(scrollback_is_dirty(main_session->output_data)) {
-            user_interface_refresh_output_window(ui, main_session->output_data);
+            // Note that the scrollback index is adjusted based on the last line
+            // written in the window. This helps cap the scrollback with the
+            // window size.
+            int scroll_index = user_interface_refresh_output_window(ui, main_session->output_data);
+            scrollback_set_scroll(main_session->output_data, scroll_index);
             scrollback_clear_dirty(main_session->output_data);
         }
         if(input_line_is_dirty(main_session->input_data)) {
