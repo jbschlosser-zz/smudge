@@ -44,5 +44,6 @@ int user_interface_get_user_input(user_interface *ui);
 void user_interface_resize(user_interface *ui, int newlines, int newcols);
 int user_interface_refresh_output_window(user_interface *ui, scrollback *sb);
 void user_interface_refresh_input_line_window(user_interface *ui, input_line *input);
+int user_interface_output_window_num_lines(user_interface *ui);
 
 #endif

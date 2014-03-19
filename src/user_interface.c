@@ -164,3 +164,13 @@ void user_interface_refresh_input_line_window(user_interface *ui, input_line *in
     wmove(ui->_input_line_window, 0, input_line_get_cursor(input));
     wrefresh(ui->_input_line_window);
 }
+
+int user_interface_output_window_num_lines(user_interface *ui)
+{
+    int win_size_lines;
+    int win_size_cols;
+    getmaxyx(ui->_output_window, win_size_lines, win_size_cols);
+    (void)win_size_cols;
+
+    return win_size_lines;
+}

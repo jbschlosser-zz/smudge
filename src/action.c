@@ -35,12 +35,14 @@ DEFINE_ACTION(do_nothing_action, sess, ui)
 
 DEFINE_ACTION(page_up_action, sess, ui)
 {
-    scrollback_adjust_scroll(sess->output_data, 1);
+    int win_size_lines = user_interface_output_window_num_lines(ui);
+    scrollback_adjust_scroll(sess->output_data, (win_size_lines / 2));
 }
 
 DEFINE_ACTION(page_down_action, sess, ui)
 {
-    scrollback_adjust_scroll(sess->output_data, -1);
+    int win_size_lines = user_interface_output_window_num_lines(ui);
+    scrollback_adjust_scroll(sess->output_data, -(win_size_lines / 2));
 }
 
 DEFINE_ACTION(history_back_action, sess, ui)
