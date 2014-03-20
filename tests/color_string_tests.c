@@ -25,15 +25,35 @@
 
 START_TEST(test_color_string_create_empty)
 {
-    color_string *str = color_string_create_empty(10);
+    color_string *str = color_string_create(10);
     ck_assert_int_eq(color_string_length(str), 0);
     color_string_destroy(str);
+
+    color_string *str2 = color_string_create_empty();
+    ck_assert_int_eq(color_string_length(str2), 0);
+    color_string_destroy(str2);
+}
+END_TEST
+START_TEST(test_color_string_copy)
+{
+    color_string *str = color_string_create_from_c_str("hello world");
+    color_string *str2 = color_string_copy(str);
+
+    ck_assert_int_eq(color_string_length(str), color_string_length(str2));
+    char *c_str = color_string_to_c_str(str);
+    char *c_str2 = color_string_to_c_str(str2);
+    ck_assert_str_eq(c_str, c_str2);
+
+    free(c_str);
+    free(c_str2);
+    color_string_destroy(str);
+    color_string_destroy(str2);
 }
 END_TEST
 START_TEST(test_color_string_append_multiple_allocations)
 {
     // Arrange.
-    color_string *str = color_string_create_empty(3);
+    color_string *str = color_string_create(3);
 
     // Act.
     const char test_str[] = "this is a test";
@@ -54,13 +74,13 @@ END_TEST
 START_TEST(test_color_string_insert_string)
 {
     // Arrange.
-    color_string *str = color_string_create_empty(3);
+    color_string *str = color_string_create(3);
 
     // Act.
     const char test_str[] = "this is a test";
     color_string_append_c_str(str, test_str, strlen(test_str));
     const char test_str2[] = "n insertion";
-    color_string *insert_str = color_string_create_from_c_string(128, test_str2);
+    color_string *insert_str = color_string_create_from_c_str(test_str2);
     color_string_insert(str, 9, color_string_get_data(insert_str), color_string_length(insert_str));
 
     // Assert.
@@ -78,7 +98,7 @@ START_TEST(test_color_string_insert_lots)
 {
     // Arrange.
     const char initial_str[] = "abcdef";
-    color_string *str = color_string_create_from_c_string(3, initial_str);
+    color_string *str = color_string_create_from_c_str(initial_str);
 
     // Act.
     color_char char_to_insert = 'x';
@@ -103,7 +123,7 @@ START_TEST(test_color_string_delete_char_first_index)
 {
     // Arrange.
     const char initial_str[] = "abcdef";
-    color_string *str = color_string_create_from_c_string(6, initial_str);
+    color_string *str = color_string_create_from_c_str(initial_str);
 
     // Act.
     color_string_delete_char(str, 0);
@@ -123,7 +143,7 @@ START_TEST(test_color_string_delete_char_middle_index)
 {
     // Arrange.
     const char initial_str[] = "abcdef";
-    color_string *str = color_string_create_from_c_string(6, initial_str);
+    color_string *str = color_string_create_from_c_str(initial_str);
 
     // Act.
     color_string_delete_char(str, 2);
@@ -143,7 +163,7 @@ START_TEST(test_color_string_delete_char_last_index)
 {
     // Arrange.
     const char initial_str[] = "abcdef";
-    color_string *str = color_string_create_from_c_string(6, initial_str);
+    color_string *str = color_string_create_from_c_str(initial_str);
 
     // Act.
     color_string_delete_char(str, strlen(initial_str) - 1);
@@ -165,6 +185,7 @@ Suite *make_color_string_suite(void)
 {
     Suite *s = suite_create("Color string");
     ADD_TEST_TO_SUITE(test_color_string_create_empty, s);
+    ADD_TEST_TO_SUITE(test_color_string_copy, s);
     ADD_TEST_TO_SUITE(test_color_string_append_multiple_allocations, s);
     ADD_TEST_TO_SUITE(test_color_string_insert_string, s);
     ADD_TEST_TO_SUITE(test_color_string_insert_lots, s);

@@ -45,15 +45,15 @@ void init_color_pairs(void);
 typedef struct {
     color_char *_data; // The character data.
     int _max_size; // The max size of character data that can fit in the string.
-    int _block_size; // The size of blocks allocated to hold characters. TODO: Implement
-                     // growth by some factor (e.g. 1.5 or 2) of current size instead.
     int _length; // The number of characters currently in the string.
 } color_string;
 
 // Constructors/destructor.
-color_string *color_string_create(int max_size, color_char* initial_str, int len);
-color_string *color_string_create_empty(int max_size);
-color_string *color_string_create_from_c_string(int max_size, const char *initial_str);
+color_string *color_string_create(int initial_size);
+color_string *color_string_create_empty(void);
+color_string *color_string_create_from_array(color_char* initial_str, int len);
+color_string *color_string_create_from_c_str(const char *initial_str);
+color_string *color_string_copy(color_string *other);
 void color_string_destroy(color_string *str);
 
 // Member functions.

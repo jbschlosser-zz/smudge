@@ -30,7 +30,7 @@ line_buffer *line_buffer_create(int size_in_lines)
     buf->_lines = malloc(sizeof(color_string*) * size_in_lines);
     int i;
     for(i = 0; i < size_in_lines; ++i) {
-        buf->_lines[i] = color_string_create_empty(128);
+        buf->_lines[i] = color_string_create(128); // Arbitrary amount of memory pre-allocated.
     }
     buf->_size = size_in_lines;
     buf->_used = 1; // Count the first line as being in use.

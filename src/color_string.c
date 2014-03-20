@@ -35,33 +35,44 @@ void init_color_pairs()
     init_pair(INPUT_LINE_COLOR_PAIR, COLOR_BLACK, COLOR_CYAN);
 }
 
-color_string *color_string_create(int max_size, color_char* initial_str, int len)
+color_string *color_string_create(int initial_size)
 {
-    color_string *str = color_string_create_empty(max_size);
-    if(!str) return NULL;
-    color_string_append(str, initial_str, len);
-
-    return str;
-}
-
-color_string *color_string_create_empty(int max_size)
-{
-    if(max_size <= 0) return NULL;
+    if(initial_size <= 0) initial_size = 1;
 
     color_string *str = malloc(sizeof(color_string));
-    str->_data = malloc(sizeof(color_char) * max_size);
-    str->_max_size = max_size;
-    str->_block_size = max_size;
+    str->_data = malloc(initial_size * sizeof(color_char));
+    str->_max_size = initial_size;
     str->_length = 0;
 
     return str;
 }
 
-color_string *color_string_create_from_c_string(int max_size, const char *initial_str)
+color_string *color_string_create_empty(void)
 {
-    color_string *str = color_string_create_empty(max_size);
-    if(!str) return NULL;
-    color_string_append_c_str(str, initial_str, strlen(initial_str));
+    return color_string_create(1);
+}
+
+color_string *color_string_create_from_array(color_char* initial_str, int len)
+{
+    color_string *str = color_string_create(len);
+    color_string_append(str, initial_str, len);
+
+    return str;
+}
+
+color_string *color_string_create_from_c_str(const char *initial_str)
+{
+    int len = strlen(initial_str);
+    color_string *str = color_string_create(len);
+    color_string_append_c_str(str, initial_str, len);
+
+    return str;
+}
+
+color_string *color_string_copy(color_string *other)
+{
+    color_string *str = color_string_create(color_string_length(other));
+    color_string_assign(str, other);
 
     return str;
 }
@@ -98,18 +109,7 @@ void color_string_append(color_string *str, const color_char *append_str, int le
     if(!append_str) return;
     if(len <= 0) return;
 
-    // Make sure there is enough space to write the data.
-    while((str->_max_size - str->_length) < len) {
-        str->_max_size = (str->_max_size + str->_block_size);
-        color_char *new_data = malloc(sizeof(color_char) * str->_max_size);
-        memcpy(new_data, str->_data, str->_length * sizeof(color_char));
-        free(str->_data);
-        str->_data = new_data;
-    }
-
-    // Copy in the string to append.
-    memcpy(str->_data + str->_length, append_str, len * sizeof(color_char));
-    str->_length += len;
+    color_string_insert(str, color_string_length(str), append_str, len);
 }
 
 void color_string_append_c_str(color_string *str, const char *append_str, int len)
@@ -132,7 +132,7 @@ void color_string_insert(color_string *str, int index, const color_char *insert_
 
     // Make sure there is enough space to write the data.
     while((str->_max_size - str->_length) < len) {
-        str->_max_size = (str->_max_size + str->_block_size);
+        str->_max_size = (str->_max_size * 2);
         color_char *new_data = malloc(sizeof(color_char) * str->_max_size);
         memcpy(new_data, str->_data, str->_length * sizeof(color_char));
         free(str->_data);
@@ -157,10 +157,8 @@ void color_string_assign(color_string *str, color_string *other_str)
     // Check if the string will fit in the currently allocated memory.
     if(color_string_length(other_str) > color_string_length(str)) {
         // Allocate the same amount of space as the other string has.
-        // TODO: Allocate in blocks.
         free(str->_data);
         str->_data = malloc(other_str->_max_size * sizeof(color_char));
-        str->_block_size = other_str->_block_size;
         str->_max_size = other_str->_max_size;
     }
 
