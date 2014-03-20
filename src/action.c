@@ -103,18 +103,22 @@ DEFINE_ACTION(submit_from_input_line_action, sess, ui)
     submit_act->perform(submit_act, sess, ui);
     submit_act->destroy(submit_act);
 
-    // Clear the input line.
-    action *clear_act = (action*)clear_input_line_action_create();
-    clear_act->perform(clear_act, sess, ui);
-    clear_act->destroy(clear_act);
+    // Add the input to the history.
+    action *history_add_act = (action*)add_to_history_action_create(input_line_get_contents(sess->input_data));
+    history_add_act->perform(history_add_act, sess, ui);
+    history_add_act->destroy(history_add_act);
+
+    // Scroll the history to the end.
+    action *history_scroll_act = (action*)history_forward_end_action_create();
+    history_scroll_act->perform(history_scroll_act, sess, ui);
+    history_scroll_act->destroy(history_scroll_act);
 }
 
 // ------------------------
 // Search backwards action.
 // ------------------------
 DEFINE_ACTION_1_STATE_CREATE(search_backwards_action, derived, color_string *search_str,
-    derived->search_str = color_string_create_empty(1);
-    color_string_assign(derived->search_str, search_str);
+    derived->search_str = color_string_copy(search_str);
 );
 
 DEFINE_ACTION_1_STATE_DESTROY(search_backwards_action, derived,
@@ -141,6 +145,20 @@ DEFINE_ACTION_1_STATE_DESTROY(send_command_action, derived,
 );
 
 DEFINE_ACTION_1_PERFORM(send_command_action, derived, sess, ui,
+    // Color the command text yellow to help distinguish it as input.
+    color_string *cmd_to_write = color_string_create_from_c_str(derived->command_str);
+    int i;
+    for(i = 0; i < color_string_length(cmd_to_write); ++i) {
+        color_string_get_data(cmd_to_write)[i] = (color_string_get_data(cmd_to_write)[i] | COLOR_PAIR(YELLOW_ON_DEFAULT_BG));
+    }
+
+    // Write the command to the output window.
+    action *write_act = (action*)write_output_line_action_create(cmd_to_write);
+    write_act->perform(write_act, sess, ui);
+    write_act->destroy(write_act);
+    color_string_destroy(cmd_to_write);
+
+    // Send the command.
     int send_result = mud_connection_send_command(sess->connection, derived->command_str, strlen(derived->command_str));
     if(send_result < 0) {
         // TODO: Handle this case!
@@ -167,8 +185,7 @@ DEFINE_ACTION_1_PERFORM(add_input_char_action, derived, sess, ui,
 // Add to history action.
 // ----------------------
 DEFINE_ACTION_1_STATE_CREATE(add_to_history_action, derived, color_string *entry,
-    derived->entry = color_string_create_empty(1);
-    color_string_assign(derived->entry, entry);
+    derived->entry = color_string_copy(entry);
 );
 
 DEFINE_ACTION_1_STATE_DESTROY(add_to_history_action, derived,
@@ -183,8 +200,7 @@ DEFINE_ACTION_1_PERFORM(add_to_history_action, derived, sess, ui,
 // Write output line action.
 // -------------------------
 DEFINE_ACTION_1_STATE_CREATE(write_output_line_action, derived, color_string *line,
-    derived->line = color_string_create_empty(1);
-    color_string_assign(derived->line, line);
+    derived->line = color_string_copy(line);
 );
 
 DEFINE_ACTION_1_STATE_DESTROY(write_output_line_action, derived,
@@ -213,7 +229,7 @@ DEFINE_ACTION_1_PERFORM(unset_key_binding_action, derived, sess, ui,
     // Output a message indicating that the key is unbound.
     char msg[1024];
     sprintf(msg, "No binding set for key: %d", derived->keycode);
-    color_string *msg_str = color_string_create_from_c_string(128, msg);
+    color_string *msg_str = color_string_create_from_c_str(msg);
     action *message_act = (action*)write_output_line_action_create(msg_str);
     message_act->perform(message_act, sess, ui);
     message_act->destroy(message_act);
@@ -224,8 +240,7 @@ DEFINE_ACTION_1_PERFORM(unset_key_binding_action, derived, sess, ui,
 // Submit input action.
 // --------------------
 DEFINE_ACTION_1_STATE_CREATE(submit_input_action, derived, color_string *input_str,
-    derived->input_str = color_string_create_empty(1);
-    color_string_assign(derived->input_str, input_str);
+    derived->input_str = color_string_copy(input_str);
 );
 
 DEFINE_ACTION_1_STATE_DESTROY(submit_input_action, derived,
@@ -233,19 +248,6 @@ DEFINE_ACTION_1_STATE_DESTROY(submit_input_action, derived,
 );
 
 DEFINE_ACTION_1_PERFORM(submit_input_action, derived, sess, ui,
-    // TODO: Add another parameter to this action for whether
-    // or not to add to the history.
- 
-    // Add the input to the history.
-    action *history_add_act = (action*)add_to_history_action_create(derived->input_str);
-    history_add_act->perform(history_add_act, sess, ui);
-    history_add_act->destroy(history_add_act);
-
-    // Scroll the history to the end.
-    action *history_scroll_act = (action*)history_forward_end_action_create();
-    history_scroll_act->perform(history_scroll_act, sess, ui);
-    history_scroll_act->destroy(history_scroll_act);
-
     // Run the hook if one is present.
     char *input_c_str = color_string_to_c_str(derived->input_str);
     SCM symbol = scm_c_lookup("send-command-hook");
@@ -253,11 +255,6 @@ DEFINE_ACTION_1_PERFORM(submit_input_action, derived, sess, ui,
     if(scm_is_true(scm_hook_p(send_command_hook)) && scm_is_false(scm_hook_empty_p(send_command_hook))) {
         scm_c_run_hook(send_command_hook, scm_list_1(scm_from_locale_string(input_c_str)));
     } else {
-        // Write the input to the output window.
-        action *write_act = (action*)write_output_line_action_create(derived->input_str);
-        write_act->perform(write_act, sess, ui);
-        write_act->destroy(write_act);
-
         // Send the command to the server.
         action *send_act = (action*)send_command_action_create(input_c_str);
         send_act->perform(send_act, sess, ui);

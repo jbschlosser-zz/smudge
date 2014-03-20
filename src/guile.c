@@ -18,6 +18,7 @@
  *
  */
 
+#include "action.h"
 #include "guile.h"
 
 void init_guile(void)
@@ -57,11 +58,14 @@ SCM scheme_send_command(SCM command)
 {
     if(!guile_current_session) return SCM_BOOL_F;
 
-    char *str = scm_to_locale_string(command);
-    int result = mud_connection_send_command(guile_current_session->connection, str, strlen(str));
-    free(str);
+    // Send the command to the server.
+    char *command_str = scm_to_locale_string(command);
+    action *send_act = (action*)send_command_action_create(command_str);
+    send_act->perform(send_act, guile_current_session, NULL);
+    send_act->destroy(send_act);
+    free(command_str);
 
-    return scm_from_int(result);
+    return SCM_UNSPECIFIED;
 }
 
 SCM scheme_load_config_file(void)
