@@ -21,8 +21,9 @@
 #ifndef ACTION_H
 #define ACTION_H
 
-#include "session.h"
 #include "user_interface.h"
+
+struct _session;
 
 // An action that can be performed on the state of a MUD session.
 // This struct acts as a base class, with each type of specific
@@ -30,7 +31,7 @@
 // TODO: Potentially remove the user interface, since it shouldn't
 // be updated from within actions anyway.
 typedef struct _action {
-    void (*perform)(struct _action *act, session *sess, user_interface *ui); // Function for performing the specific action.
+    void (*perform)(struct _action *act, struct _session *sess, user_interface *ui); // Function for performing the specific action.
                                                                              // This function is set by the derived action.
     void (*destroy)(struct _action *act); // Function for destroying the action. This function is set by the derived action.
 } action;
@@ -47,7 +48,7 @@ void action_default_destroy(action *act);
     } name;\
     name *name##_create(void);\
     void name##_destroy(action *act);\
-    void name##_perform(action *act, session *sess, user_interface *ui);
+    void name##_perform(action *act, struct _session *sess, user_interface *ui);
 
 #define DEFINE_ACTION(name, sess, ui) \
     name *name##_create(void)\
@@ -57,7 +58,7 @@ void action_default_destroy(action *act);
         act->base.destroy = action_default_destroy;\
         return act;\
     }\
-    void name##_perform(action* _action_, session *sess, user_interface *ui)
+    void name##_perform(action* _action_, struct _session *sess, user_interface *ui)
 
 // Convenience macros for declaring/defining actions with additional state. This
 // is a bit more complex since each action can own dynamically-allocated memory.
@@ -70,7 +71,7 @@ void action_default_destroy(action *act);
     } name;\
     name *name##_create(state_var);\
     void name##_destroy(action *act);\
-    void name##_perform(action *act, session *sess, user_interface *ui);
+    void name##_perform(action *act, struct _session *sess, user_interface *ui);
 
 #define DEFINE_ACTION_1_STATE_CREATE(name, derived, state, ...)\
     name *name##_create(state)\
@@ -93,7 +94,7 @@ void action_default_destroy(action *act);
     }
 
 #define DEFINE_ACTION_1_PERFORM(name, derived, sess, ui, ...)\
-    void name##_perform(action *act, session *sess, user_interface *ui)\
+    void name##_perform(action *act, struct _session *sess, user_interface *ui)\
     {\
         name *derived = (name*)act;\
         __VA_ARGS__\

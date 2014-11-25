@@ -18,6 +18,7 @@
  *
  */
 
+#include "action.h"
 #include "keys.h"
 
 key_binding_table *key_binding_table_create(void)

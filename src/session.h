@@ -21,25 +21,34 @@
 #ifndef SESSION_H
 #define SESSION_H
 
+#include "color_string.h"
 #include "history.h"
 #include "input_line.h"
 #include "line_buffer.h"
 #include "mud_connection.h"
-#include "color_string.h"
 #include "scrollback.h"
 #include "search.h"
 
+// Forward declaration to resolve circular dependency.
+struct _key_binding_table;
+
 // Stores all state corresponding to a single MUD session.
-typedef struct {
+typedef struct _session {
     mud_connection *connection;
     scrollback *output_data;
     history *hist;
     input_line *input_data;
+    struct _key_binding_table *bindings;
     search_result last_search_result;
 } session;
 
 // Construction/destruction.
-session *session_create(mud_connection *connection, scrollback *output_data, history *hist, input_line *input_data);
+session *session_create(
+    mud_connection *connection,
+    scrollback *output_data,
+    history *hist,
+    input_line *input_data,
+    struct _key_binding_table *bindings);
 void session_destroy(session *sess);
 
 #endif

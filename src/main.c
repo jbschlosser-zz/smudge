@@ -18,6 +18,7 @@
  *
  */
 
+#include <ev.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,6 +38,49 @@ void signal_handler(int signum)
 {
     if(signum == SIGWINCH)
         RESIZE_OCCURRED = 1;
+}
+
+typedef struct {
+    ev_io io;
+    session *sess;
+    user_interface *ui;
+} io_with_state;
+
+static void stdin_cb(EV_P_ struct ev_io *w, int revents)
+{
+    io_with_state *io_state = (io_with_state*)w;
+    session *main_session = io_state->sess;
+    user_interface *ui = io_state->ui;
+
+    /*char buffer[2048];
+    int byte_count = read(0, buffer, 2047);
+    buffer[byte_count] = '\0';
+
+    color_string *msg = color_string_create_from_c_str(buffer);
+    action *act = (action*)write_output_line_action_create(msg);
+    color_string_destroy(msg);
+    act->perform(act, io_state->sess, io_state->ui);
+    write_output_line_action_destroy(act);
+
+    int scroll_index = user_interface_refresh_output_window(io_state->ui, io_state->sess->output_data);
+    scrollback_set_scroll(io_state->sess->output_data, scroll_index);
+    scrollback_clear_dirty(io_state->sess->output_data);*/
+
+    // Perform the function bound to the key.
+    int input_keycode = user_interface_get_user_input(ui);
+    if(input_keycode != ERR) {
+        action *act = key_binding_table_get_binding(main_session->bindings, input_keycode);
+        if(act) {
+            act->perform(act, main_session, ui);
+        } else {
+            // Indicate that the key is unbound.
+            act = (action*)unset_key_binding_action_create(input_keycode);
+            act->perform(act, main_session, ui);
+            act->destroy(act);
+        }
+
+        user_interface_refresh_input_line_window(ui, main_session->input_data);
+    }
 }
 
 void main_with_guile(void *data, int argc, char **argv)
@@ -68,7 +112,8 @@ void main_with_guile(void *data, int argc, char **argv)
         mud_connection_create(REAL_SOCKET_OPS),
         scrollback_create(line_buffer_create(10000)),
         history_create(line_buffer_create(100)),
-        input_line_create());
+        input_line_create(),
+        key_binding_table_create());
     set_guile_current_session(main_session);
 
     // CONNECT TO THE MUD SERVER.
@@ -83,12 +128,20 @@ void main_with_guile(void *data, int argc, char **argv)
     // SET UP THE USER INTERFACE.
     // Start ncurses.
     init_ncurses();
+    nodelay(stdscr, TRUE); // Allows non-blocking checks for keypresses.
+    keypad(stdscr, TRUE); // Provide function keys as a single code.
 
     // Create the UI.
     user_interface *ui = user_interface_create(0, 0, LINES, COLS);
 
-    // CREATE THE KEYBINDINGS.
-    key_binding_table *bindings = key_binding_table_create();
+    // MAIN LOOP (LIBEV VERSION).
+    struct ev_loop *loop = ev_default_loop(0);
+    io_with_state stdin_watcher;
+    stdin_watcher.sess = main_session;
+    stdin_watcher.ui = ui;
+    ev_io_init(&(stdin_watcher.io), stdin_cb, 0, EV_READ);
+    ev_io_start(loop, &(stdin_watcher.io));
+    ev_loop(loop, 0);
 
     // MAIN LOOP.
     int input_keycode = 0x0;
@@ -140,25 +193,9 @@ void main_with_guile(void *data, int argc, char **argv)
         }
 
         // GET INPUT FROM THE USER.
-        // Perform the function bound to the key.
-        input_keycode = user_interface_get_user_input(ui);
-        if(input_keycode == ERR) {
-            usleep(10000);
-        } else {
-            action *act = key_binding_table_get_binding(bindings, input_keycode);
-            if(act) {
-                act->perform(act, main_session, ui);
-            } else {
-                // Indicate that the key is unbound.
-                act = (action*)unset_key_binding_action_create(input_keycode);
-                act->perform(act, main_session, ui);
-                act->destroy(act);
-            }
-        }
     }
 
     end_ncurses();
-    key_binding_table_destroy(bindings);
     session_destroy(main_session);
     user_interface_destroy(ui);
 }

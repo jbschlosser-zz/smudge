@@ -20,6 +20,7 @@
 
 #include <libguile.h>
 #include "action.h"
+#include "session.h"
 
 void action_default_destroy(action *act)
 {

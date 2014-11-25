@@ -20,6 +20,7 @@
 
 #include "action.h"
 #include "guile.h"
+#include "keys.h"
 
 void init_guile(void)
 {

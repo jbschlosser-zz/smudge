@@ -21,25 +21,26 @@
 #ifndef KEYS_H
 #define KEYS_H
 
-#include "action.h"
+// Forward declaration to resolve circular dependency.
+struct _action;
 
 // Entry in the key binding hash table.
 typedef struct _table_entry {
     int keycode;
-    action *bound_action;
+    struct _action *bound_action;
     struct _table_entry *next; // Linked list of entries that correspond to this hash.
 } _key_binding_table_entry;
 
 // Key binding hash table. Keys are bound to actions to make things happen.
-typedef struct {
+typedef struct _key_binding_table {
     int _buckets;
     _key_binding_table_entry **_bindings;
 } key_binding_table;
 
 // Construction/destruction.
 key_binding_table *key_binding_table_create(void);
-void key_binding_table_set_binding(key_binding_table *kb, int keycode, action *action_to_bind);
-action *key_binding_table_get_binding(key_binding_table *kb, int keycode);
+void key_binding_table_set_binding(key_binding_table *kb, int keycode, struct _action *action_to_bind);
+struct _action *key_binding_table_get_binding(key_binding_table *kb, int keycode);
 void key_binding_table_destroy(key_binding_table *kb);
 
 #endif
