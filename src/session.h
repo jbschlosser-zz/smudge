@@ -40,6 +40,8 @@ typedef struct _session {
     input_line *input_data;
     struct _key_binding_table *bindings;
     search_result last_search_result;
+    struct _session *prev;
+    struct _session *next;
 } session;
 
 // Construction/destruction.

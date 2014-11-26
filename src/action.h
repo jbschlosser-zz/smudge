@@ -122,5 +122,6 @@ DECLARE_ACTION_1(add_to_history_action, color_string* entry);
 DECLARE_ACTION_1(write_output_line_action, color_string *line);
 DECLARE_ACTION_1(unset_key_binding_action, int keycode)
 DECLARE_ACTION_1(submit_input_action, color_string* input_str);
+DECLARE_ACTION_1(next_session_action, struct _session **new_active);
 
 #endif

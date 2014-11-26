@@ -46,6 +46,9 @@ session *session_create(
     sess->last_search_result.begin_index = -1;
     sess->last_search_result.end_index = -1;
 
+    sess->prev = NULL;
+    sess->next = NULL;
+
     return sess;
 }
 

@@ -264,3 +264,20 @@ DEFINE_ACTION_1_PERFORM(submit_input_action, derived, sess, ui,
 
     free(input_c_str);
 );
+
+// --------------------
+// Next session action.
+// --------------------
+DEFINE_ACTION_1_STATE_CREATE(next_session_action, derived, session **new_active,
+    derived->new_active = new_active;
+);
+
+DEFINE_ACTION_1_STATE_DESTROY(next_session_action, derived,
+    // No state needs to be destroyed.
+);
+
+DEFINE_ACTION_1_PERFORM(next_session_action, derived, sess, ui,
+    session *curr = *(derived->new_active);
+    *(derived->new_active) = curr->next;
+    curr = curr->next;
+);
