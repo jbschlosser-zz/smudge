@@ -50,8 +50,8 @@ user_interface *user_interface_create(int y_loc, int x_loc, int size_lines, int 
     scrollok(ui->_output_window, TRUE);
     wbkgd(ui->_input_line_window, COLOR_PAIR(INPUT_LINE_COLOR_PAIR));
     wrefresh(ui->_input_line_window);
-    //nodelay(ui->_input_line_window, TRUE); // Allows non-blocking checks for keypresses.
-    //keypad(ui->_input_line_window, TRUE); // Provide function keys as a single code.
+    nodelay(ui->_input_line_window, TRUE); // Allows non-blocking checks for keypresses.
+    keypad(ui->_input_line_window, TRUE); // Provide function keys as a single code.
 
     return ui;
 }
@@ -67,9 +67,6 @@ void user_interface_destroy(user_interface *ui)
 
 int user_interface_get_user_input(user_interface *ui)
 {
-    //int input = getch();
-    //wrefresh(ui->_input_line_window);
-    //return input;
     return wgetch(ui->_input_line_window);
 }
 

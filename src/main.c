@@ -33,38 +33,24 @@
 
 #define MAIN_BUFFER_MAX_SIZE 24576
 
-int RESIZE_OCCURRED = 0;
-void signal_handler(int signum)
-{
-    if(signum == SIGWINCH)
-        RESIZE_OCCURRED = 1;
-}
-
 typedef struct {
     ev_io io;
     session *sess;
     user_interface *ui;
+    color_char received_data[MAIN_BUFFER_MAX_SIZE];
 } io_with_state;
 
-static void stdin_cb(EV_P_ struct ev_io *w, int revents)
+typedef struct {
+    ev_signal signal;
+    session *sess;
+    user_interface *ui;
+} signal_with_state;
+
+static void user_input_cb(EV_P_ struct ev_io *w, int revents)
 {
     io_with_state *io_state = (io_with_state*)w;
     session *main_session = io_state->sess;
     user_interface *ui = io_state->ui;
-
-    /*char buffer[2048];
-    int byte_count = read(0, buffer, 2047);
-    buffer[byte_count] = '\0';
-
-    color_string *msg = color_string_create_from_c_str(buffer);
-    action *act = (action*)write_output_line_action_create(msg);
-    color_string_destroy(msg);
-    act->perform(act, io_state->sess, io_state->ui);
-    write_output_line_action_destroy(act);
-
-    int scroll_index = user_interface_refresh_output_window(io_state->ui, io_state->sess->output_data);
-    scrollback_set_scroll(io_state->sess->output_data, scroll_index);
-    scrollback_clear_dirty(io_state->sess->output_data);*/
 
     // Perform the function bound to the key.
     int input_keycode = user_interface_get_user_input(ui);
@@ -79,7 +65,59 @@ static void stdin_cb(EV_P_ struct ev_io *w, int revents)
             act->destroy(act);
         }
 
+        // Refresh the UI.
+        int scroll_index = user_interface_refresh_output_window(ui, main_session->output_data);
+        scrollback_set_scroll(main_session->output_data, scroll_index);
         user_interface_refresh_input_line_window(ui, main_session->input_data);
+    }
+}
+
+static void resize_cb(struct ev_loop *loop, struct ev_signal *w, int revents)
+{
+    signal_with_state *signal_state = (signal_with_state*)w;
+    session *main_session = signal_state->sess;
+    user_interface *ui = signal_state->ui;
+
+    // Restart ncurses.
+    endwin();
+    refresh();
+    clear();
+
+    // Resize things.
+    user_interface_resize(ui, LINES, COLS);
+
+    // Refresh the output window.
+    // Note that the scrollback index is adjusted based on the last line
+    // written in the window. This helps cap the scrollback with the
+    // window size.
+    int scroll_index = user_interface_refresh_output_window(ui, main_session->output_data);
+    scrollback_set_scroll(main_session->output_data, scroll_index);
+
+    // Refresh the input line.
+    user_interface_refresh_input_line_window(ui, main_session->input_data);
+}
+
+static void server_data_cb(EV_P_ struct ev_io *w, int revents)
+{
+    io_with_state *io_state = (io_with_state*)w;
+    session *main_session = io_state->sess;
+    user_interface *ui = io_state->ui;
+    color_char *received_data = io_state->received_data;
+
+    int received = mud_connection_receive(main_session->connection, received_data, MAIN_BUFFER_MAX_SIZE);
+    bool connected = mud_connection_connected(main_session->connection);
+    if(received < 0 || !connected) {
+        // TODO: Handle this case!
+        ev_io_stop(EV_A_ w);
+        ev_unloop(EV_A_ EVUNLOOP_ALL);
+    }
+    if(received > 0) {
+        // Add the data to scrollback.
+        scrollback_write(main_session->output_data, received_data, received);
+
+        // Refresh the output window.
+        int scroll_index = user_interface_refresh_output_window(ui, main_session->output_data);
+        scrollback_set_scroll(main_session->output_data, scroll_index);
     }
 }
 
@@ -92,10 +130,10 @@ void main_with_guile(void *data, int argc, char **argv)
 
     // SET UP SIGNAL HANDLERS.
     // Handle the window resize signal.
-    struct sigaction signal_action;
+    /*struct sigaction signal_action;
     memset(&signal_action, 0x00, sizeof(signal_action));
     signal_action.sa_handler = signal_handler;
-    sigaction(SIGWINCH, &signal_action, NULL);
+    sigaction(SIGWINCH, &signal_action, NULL);*/
 
     // Purposely ignore SIGPIPE. When socket errors occur, they should
     // be checked for and handled at the location they occur.
@@ -128,73 +166,39 @@ void main_with_guile(void *data, int argc, char **argv)
     // SET UP THE USER INTERFACE.
     // Start ncurses.
     init_ncurses();
-    nodelay(stdscr, TRUE); // Allows non-blocking checks for keypresses.
-    keypad(stdscr, TRUE); // Provide function keys as a single code.
 
     // Create the UI.
     user_interface *ui = user_interface_create(0, 0, LINES, COLS);
 
-    // MAIN LOOP (LIBEV VERSION).
+    // SETUP MAIN LOOP.
     struct ev_loop *loop = ev_default_loop(0);
+
+    // User input watcher.
     io_with_state stdin_watcher;
     stdin_watcher.sess = main_session;
     stdin_watcher.ui = ui;
-    ev_io_init(&(stdin_watcher.io), stdin_cb, 0, EV_READ);
-    ev_io_start(loop, &(stdin_watcher.io));
-    ev_loop(loop, 0);
+    ev_io_init(&stdin_watcher.io, user_input_cb, 0 /* STDIN FD */, EV_READ);
+    ev_io_start(loop, &stdin_watcher.io);
+
+    // Resize signal watcher.
+    signal_with_state resize_watcher;
+    resize_watcher.sess = main_session;
+    resize_watcher.ui = ui;
+    ev_signal_init(&resize_watcher.signal, resize_cb, SIGWINCH);
+    ev_signal_start(loop, &resize_watcher.signal);
+
+    // MUD server data received watcher. (will be added on the fly for multiple sessions).
+    io_with_state connection_watcher;
+    connection_watcher.sess = main_session;
+    connection_watcher.ui = ui;
+    ev_io_init(&connection_watcher.io, server_data_cb,
+        main_session->connection->_fd, EV_READ);
+    ev_io_start(loop, &connection_watcher.io);
 
     // MAIN LOOP.
-    int input_keycode = 0x0;
-    color_char received_data[MAIN_BUFFER_MAX_SIZE];
-    while(1) {
-        // Handle a resize if necessary.
-        if(RESIZE_OCCURRED) {
-            // Restart ncurses.
-            endwin();
-            refresh();
-            clear();
+    ev_loop(loop, 0);
 
-            // Resize things.
-            user_interface_resize(ui, LINES, COLS);
-
-            // Refresh the UI.
-            // TODO: Change this to use the public interface.
-            main_session->output_data->_dirty = true;
-            main_session->input_data->_dirty = true;
-
-            // We're done here.
-            RESIZE_OCCURRED = 0;
-        }
-
-        // GET DATA FROM THE SERVER.
-        int received = mud_connection_receive(main_session->connection, received_data, MAIN_BUFFER_MAX_SIZE);
-        bool connected = mud_connection_connected(main_session->connection);
-        if(received < 0 || !connected) {
-            // TODO: Handle this case!
-            break;
-        }
-        if(received > 0) {
-            // Add the data to scrollback.
-            scrollback_write(main_session->output_data, received_data, received);
-        }
-
-        // REFRESH THE UI.
-        if(scrollback_is_dirty(main_session->output_data)) {
-            // Note that the scrollback index is adjusted based on the last line
-            // written in the window. This helps cap the scrollback with the
-            // window size.
-            int scroll_index = user_interface_refresh_output_window(ui, main_session->output_data);
-            scrollback_set_scroll(main_session->output_data, scroll_index);
-            scrollback_clear_dirty(main_session->output_data);
-        }
-        if(input_line_is_dirty(main_session->input_data)) {
-            user_interface_refresh_input_line_window(ui, main_session->input_data);
-            input_line_clear_dirty(main_session->input_data);
-        }
-
-        // GET INPUT FROM THE USER.
-    }
-
+    // CLEAN UP.
     end_ncurses();
     session_destroy(main_session);
     user_interface_destroy(ui);

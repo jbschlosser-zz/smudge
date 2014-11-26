@@ -39,9 +39,9 @@ key_binding_table *key_binding_table_create(void)
     key_binding_table_set_binding(kb_table, 27, (action*)history_forward_end_action_create());
     key_binding_table_set_binding(kb_table, KEY_UP, (action*)history_back_action_create());
     key_binding_table_set_binding(kb_table, KEY_DOWN, (action*)history_forward_action_create());
-    key_binding_table_set_binding(kb_table, 127 /* BACKSPACE. */, (action*)backspace_input_char_action_create());
+    key_binding_table_set_binding(kb_table, 127, (action*)backspace_input_char_action_create()); // BACKSPACE
     key_binding_table_set_binding(kb_table, KEY_BACKSPACE, (action*)backspace_input_char_action_create());
-    key_binding_table_set_binding(kb_table, 330 /* DELETE. */, (action*)delete_input_char_action_create());
+    key_binding_table_set_binding(kb_table, 330, (action*)delete_input_char_action_create()); // DELETE
     key_binding_table_set_binding(kb_table, KEY_PPAGE, (action*)page_up_action_create());
     key_binding_table_set_binding(kb_table, KEY_NPAGE, (action*)page_down_action_create());
     key_binding_table_set_binding(kb_table, KEY_HOME, (action*)search_backwards_from_input_line_action_create());
