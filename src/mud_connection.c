@@ -160,7 +160,7 @@ int mud_connection_receive(mud_connection *mc, color_char *receive_buf, int len)
         if(received == 0) {
             // A return of value of 0 indicates that the connection is broken.
             mc->_connected = false;
-            return -1;
+            return total_received;
         }
 
         // Process the received bytes.
@@ -183,8 +183,7 @@ size_t mud_connection_send(mud_connection *mc, char *send_buf, int len)
     if(!mc) return -1;
     if(!mc->_connected) return -1;
 
-    // TODO: Handle SIGPIPE with signal(SIGPIPE, SIG_IGN) and add logic here
-    // to check for write errors.
+    // TODO: Add logic here to check for write errors.
     return mc->_sock_ops.send(mc->_fd, send_buf, len, 0);
 }
 

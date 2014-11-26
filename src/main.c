@@ -109,13 +109,8 @@ static void server_data_cb(EV_P_ struct ev_io *w, int revents)
     session *active_session = io_state->state->active_session;
     session *sess = io_state->sess;
 
+    // Read in the data from the server.
     int received = mud_connection_receive(sess->connection, io_state->recv_buffer, MAIN_BUFFER_MAX_SIZE);
-    bool connected = mud_connection_connected(sess->connection);
-    if(received < 0 || !connected) {
-        // TODO: Handle this case!
-        ev_io_stop(EV_A_ w);
-        ev_unloop(EV_A_ EVUNLOOP_ALL);
-    }
     if(received > 0) {
         // Add the data to scrollback.
         scrollback_write(sess->output_data, io_state->recv_buffer, received);
@@ -125,6 +120,15 @@ static void server_data_cb(EV_P_ struct ev_io *w, int revents)
             int scroll_index = user_interface_refresh_output_window(io_state->state->ui, sess->output_data);
             scrollback_set_scroll(sess->output_data, scroll_index);
         }
+    }
+
+    // Check if the connection is still intact.
+    bool connected = mud_connection_connected(sess->connection);
+    if(!connected) {
+        // TODO: Handle this case!
+        ev_io_stop(EV_A_ w);
+        free(io_state);
+        return;
     }
 }
 
