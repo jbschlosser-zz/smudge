@@ -48,6 +48,10 @@ void mud_connection_destroy(mud_connection *mc);
 // Member functions.
 bool mud_connection_connect(mud_connection *mc, const char *hostname, const char *port_number);
 int mud_connection_receive(mud_connection *mc, color_char *receive_buf, int len);
+
+// TODO: Move out.
+int mud_connection_process(mud_connection *mc, char *buf, int len, color_char *output_buf, int output_len);
+
 size_t mud_connection_send(mud_connection *mc, char *send_buf, int len);
 size_t mud_connection_send_command(mud_connection *mc, char *send_buf, int len);
 bool mud_connection_connected(mud_connection *mc);

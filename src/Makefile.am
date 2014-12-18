@@ -4,4 +4,4 @@ libsmudge_a_SOURCES = mud_connection.c user_interface.c socket_ops.c color_strin
 bin_PROGRAMS = smudge
 smudge_CFLAGS = $(GUILE_CFLAGS) $(PCRE_CFLAGS)
 smudge_SOURCES = main.c
-smudge_LDADD = libsmudge.a -lncurses -lev $(GUILE_LIBS) $(PCRE_LIBS)
+smudge_LDADD = libsmudge.a -lncurses -luv $(GUILE_LIBS) $(PCRE_LIBS)

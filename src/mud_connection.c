@@ -133,6 +133,23 @@ static color_char process_byte(mud_connection *mc, unsigned char byte)
     return byte;
 }
 
+int mud_connection_process(mud_connection *mc, char *buf, int len, color_char *output_buf, int output_len)
+{
+    // Process the received bytes.
+    int i;
+    int total_processed = 0;
+    for(i = 0; i < len; ++i) {
+        color_char result = process_byte(mc, buf[i]);
+
+        // Add the character to the output buffer.
+        if(result) {
+            output_buf[total_processed++] = buf[i] | mc->_current_char_attrs;
+        }
+    }
+
+    return total_processed;
+}
+
 int mud_connection_receive(mud_connection *mc, color_char *receive_buf, int len)
 {
     if(!mc) return -1;

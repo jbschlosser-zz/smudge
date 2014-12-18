@@ -5,7 +5,7 @@ AC_PROG_RANLIB
 AM_PROG_AR
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile src/Makefile tests/Makefile])
-AC_CHECK_HEADERS([ncurses.h ev.h])
+AC_CHECK_HEADERS([ncurses.h uv.h])
 AC_ARG_WITH([tests], AS_HELP_STRING([--without-tests], [Build without unit tests]))
 AS_IF([test "x$with_tests" != "xno"], [
     PKG_CHECK_MODULES([CHECK], [check >= 0.9.4])

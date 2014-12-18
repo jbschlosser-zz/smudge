@@ -18,7 +18,7 @@
  *
  */
 
-#include <ev.h>
+#include <uv.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +31,7 @@
 #include "session.h"
 #include "user_interface.h"
 
-#define MAIN_BUFFER_MAX_SIZE 24576
+#define MAIN_BUFFER_MAX_SIZE 65536
 
 typedef struct {
     session *active_session;
@@ -39,25 +39,26 @@ typedef struct {
 } app_state;
 
 typedef struct {
-    ev_io io;
+    uv_poll_t poll;
     app_state *state;
-} io_with_state;
+} poll_with_state;
 
 typedef struct {
-    ev_io io;
+    uv_pipe_t pipe;
     app_state *state;
     color_char recv_buffer[MAIN_BUFFER_MAX_SIZE];
     session *sess;
-} connection_io;
+} connection_pipe;
 
 typedef struct {
-    ev_signal signal;
+    uv_signal_t signal;
     app_state *state;
 } signal_with_state;
 
-static void user_input_cb(EV_P_ struct ev_io *w, int revents)
+static void user_input_cb(uv_poll_t *handle, int status, int events)
 {
-    app_state *state = ((io_with_state*)w)->state;
+    syslog(LOG_DEBUG, "User input cb");
+    app_state *state = ((poll_with_state*)handle)->state;
 
     // Perform the function bound to the key.
     int input_keycode = user_interface_get_user_input(state->ui);
@@ -79,9 +80,10 @@ static void user_input_cb(EV_P_ struct ev_io *w, int revents)
     }
 }
 
-static void resize_cb(struct ev_loop *loop, struct ev_signal *w, int revents)
+static void resize_cb(uv_signal_t *handle, int signum)
 {
-    app_state *state = ((signal_with_state*)w)->state;
+    syslog(LOG_DEBUG, "Resize cb");
+    app_state *state = ((signal_with_state*)handle)->state;
     session *active_session = state->active_session;
 
     // Restart ncurses.
@@ -103,36 +105,38 @@ static void resize_cb(struct ev_loop *loop, struct ev_signal *w, int revents)
     user_interface_refresh_input_line_window(state->ui, active_session->input_data);
 }
 
-static void server_data_cb(EV_P_ struct ev_io *w, int revents)
+static void server_data_cb(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf)
 {
-    connection_io *io_state = (connection_io*)w;
-    session *active_session = io_state->state->active_session;
-    session *sess = io_state->sess;
+    syslog(LOG_DEBUG, "server data cb");
+    connection_pipe *pipe_state = (connection_pipe*)stream;
+    session *active_session = pipe_state->state->active_session;
+    session *sess = pipe_state->sess;
 
     // Read in the data from the server.
-    int received = mud_connection_receive(sess->connection, io_state->recv_buffer, MAIN_BUFFER_MAX_SIZE);
-    if(received > 0) {
+    if(nread > 0) {
         // Add the data to scrollback.
-        scrollback_write(sess->output_data, io_state->recv_buffer, received);
+        int processed = mud_connection_process(
+            sess->connection, buf->base, nread, pipe_state->recv_buffer, MAIN_BUFFER_MAX_SIZE);
+        scrollback_write(sess->output_data, pipe_state->recv_buffer, processed);
 
         if(sess == active_session) {
             // Refresh the output window.
-            int scroll_index = user_interface_refresh_output_window(io_state->state->ui, sess->output_data);
+            int scroll_index = user_interface_refresh_output_window(pipe_state->state->ui, sess->output_data);
             scrollback_set_scroll(sess->output_data, scroll_index);
         }
-    }
-
-    // Check if the connection is still intact.
-    bool connected = mud_connection_connected(sess->connection);
-    if(!connected) {
-        // TODO: Handle this case!
-        ev_io_stop(EV_A_ w);
-        free(io_state);
-        return;
+    } else {
+        syslog(LOG_DEBUG, "Connection stopped");
+        uv_read_stop(stream);
+        free(pipe_state);
     }
 }
 
-static void add_new_session(app_state *state, struct ev_loop *loop, const char *host, const char* port)
+static void alloc_buffer_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf)
+{
+    *buf = uv_buf_init((char*) malloc(suggested_size), suggested_size);
+}
+
+static void add_new_session(app_state *state, uv_loop_t *loop, const char *host, const char* port)
 {
     // Create the session.
     session *new_session = session_create(
@@ -172,12 +176,12 @@ static void add_new_session(app_state *state, struct ev_loop *loop, const char *
     }
 
     // Register a connection handler (memory leak known).
-    connection_io *connection_watcher = malloc(sizeof(connection_io));
+    connection_pipe *connection_watcher = malloc(sizeof(connection_pipe));
     connection_watcher->state = state;
     connection_watcher->sess = new_session;
-    ev_io_init(&connection_watcher->io, server_data_cb,
-        new_session->connection->_fd, EV_READ);
-    ev_io_start(loop, &connection_watcher->io);
+    uv_pipe_init(loop, &connection_watcher->pipe, 0);
+    uv_pipe_open(&connection_watcher->pipe, new_session->connection->_fd);
+    uv_read_start((uv_stream_t*)&connection_watcher->pipe, alloc_buffer_cb, server_data_cb);
 }
 
 void main_with_guile(void *data, int argc, char **argv)
@@ -229,19 +233,19 @@ void main_with_guile(void *data, int argc, char **argv)
     state.ui = ui;
 
     // SETUP MAIN LOOP.
-    struct ev_loop *loop = ev_default_loop(0);
+    uv_loop_t *loop = uv_loop_new();
 
     // User input watcher.
-    io_with_state user_input_watcher;
+    poll_with_state user_input_watcher;
     user_input_watcher.state = &state;
-    ev_io_init(&user_input_watcher.io, user_input_cb, 0 /* STDIN FD */, EV_READ);
-    ev_io_start(loop, &user_input_watcher.io);
+    uv_poll_init(loop, &user_input_watcher.poll, 0); // STDIN FD.
+    uv_poll_start(&user_input_watcher.poll, UV_READABLE, user_input_cb);
 
     // Resize signal watcher.
     signal_with_state resize_watcher;
     resize_watcher.state = &state;
-    ev_signal_init(&resize_watcher.signal, resize_cb, SIGWINCH);
-    ev_signal_start(loop, &resize_watcher.signal);
+    uv_signal_init(loop, &resize_watcher.signal);
+    uv_signal_start(&resize_watcher.signal, resize_cb, SIGWINCH);
 
     // Create a session.
     const char *host = argv[1];
@@ -258,7 +262,10 @@ void main_with_guile(void *data, int argc, char **argv)
     ev_io_start(loop, &connection_watcher.io);*/
 
     // MAIN LOOP.
-    ev_loop(loop, 0);
+    syslog(LOG_DEBUG, "Starting app...");
+    syslog(LOG_DEBUG, "Testing!");
+    uv_run(loop, UV_RUN_DEFAULT);
+    syslog(LOG_DEBUG, "After loop");
 
     // CLEAN UP.
     end_ncurses();
